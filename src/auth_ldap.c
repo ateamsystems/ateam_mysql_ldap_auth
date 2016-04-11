@@ -19,22 +19,22 @@
  *   51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.               *
  ***************************************************************************/
 
-// Standard C includes
+/* Standard C includes */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-// OS specific includes
+/* OS specific includes */
 #include <dlfcn.h>
 #include <syslog.h>
 
-// MySQL specific includes
+/* MySQL specific includes */
 #include <mysql/mysql.h>
 #include <mysql/my_global.h>
 #include <mysql/plugin_auth.h>
 #include <mysql/client_plugin.h>
 
-// Third party includes
+/* Third party includes */
 #include <ldap.h>
 #include <libconfig.h>
 
@@ -47,16 +47,16 @@ char *CONFIG_SEARCH_FILTER = NULL;
 char *CONFIG_DN = NULL;
 const char *CONFIG_LIBLDAP = NULL;
 
-// uncomment this for more info logs
-#define DEBUG	1
+/* For debug, uncomment */
+#define	DEBUG	1
 
-// Logging functions.
+/* Logging functions */
 static void openSysLog(void);
 static char* vmkString(const char* format,int *size, va_list ap);
 static void error(const char* err, ... );
 static void info(const char* message, ... );
 
-// openLDAP wrapper functions.
+/* openLDAP wrapper functions */
 static int ldap_initialize_wrapper(LDAP**, char* );
 static int ldap_set_option_wrapper(LDAP*,int, const void* );
 static int ldap_unbind_ext_wrapper(LDAP*, LDAPControl*[], LDAPControl*[] );
@@ -68,7 +68,7 @@ static int ldap_search_s_wrapper(LDAP *, char *, int, char *, char *[], int,
     LDAPMessage **);
 static int ldap_msgfree_wrapper(LDAPMessage *);
 
-// Function pointers to ldap functions typedefs.
+/* Function pointers to ldap functions typedefs */
 typedef int (*ldap_initialize_t)(LDAP**, char*);
 typedef int (*ldap_set_option_t)(LDAP*, int, const void*);
 typedef int (*ldap_unbind_ext_t)(LDAP*, LDAPControl*[], LDAPControl*[]);
@@ -80,7 +80,10 @@ typedef int (*ldap_search_s_t)(LDAP *, char *, int, char *, char *[], int,
     LDAPMessage **);
 typedef int (*ldap_msgfree_t)(LDAPMessage *);
 
-// Functions pointers to openLDAP functions, used by openLDAP wrapper functions.
+/*
+ * Functions pointers to openLDAP functions,
+ * used by openLDAP wrapper functions
+ */
 static ldap_initialize_t ldap_initialize_p;
 static ldap_set_option_t ldap_set_option_p;
 static ldap_unbind_ext_t ldap_unbind_ext_p;
@@ -95,13 +98,13 @@ static char* (*ldap_err2string_p)(int);
 static void (*ber_bvfree_p)(struct berval *);
 static void (*ldap_memfree_p)(void *);
 
-// dynamic openLDAP library handle.
+/* Dynamic openLDAP library handle */
 static void* libldapHandle = NULL;
 
-// Flag to signal if the syslog is open or not.
+/* Flag to signal if the syslog is open or not */
 static int syslog_open = 0;
 
-// Open syslog for logging
+/* Open syslog for logging */
 static void
 openSysLog(void)
 {
@@ -113,24 +116,26 @@ openSysLog(void)
 	syslog_open = 1;
 }
 
-// Log an information message to the system log
+/* Log an information message to the system log */
 static void
 info(const char* message, ...)
 {
-	// va_list struct to load the variable argument list
+	/* va_list struct to load the variable argument list */
 	va_list ap;
 
-	// check if the syslog is open
+	/* Check if the syslog is open */
 	if (!syslog_open)
 		openSysLog();
 
-	// validate printf style error format
+	/* Validate printf style error format */
 	if (message == NULL) {
-		// NULL was supplied. Simply log there was an info!
+		/* NULL was supplied. Simply log there was an info! */
 		syslog(LOG_ERR, "info\n");
 	} else {
-		// generate the C string based on the error format and
-		// the va_list
+		/*
+		 * Generate the C string based on the error format and
+		 * the va_list
+		 */
 		char *msg;
 		int size = 0;
 		do {
@@ -138,38 +143,40 @@ info(const char* message, ...)
 			msg = vmkString(message, &size, ap);
 			va_end(ap);
 		} while (msg == NULL && (size != 0));
-		// Check if the error message got generated without a problem
+		/* Check if the error message got generated without a problem */
 		if (msg == NULL) {
-			// there was an error generating the info message.
-			// Simply log the info format.
+			/* There was an error generating the info message. */
+			/* Simply log the info format. */
 			syslog(LOG_INFO,"info: %s\n", msg);
 		}else{
-			// log the error message
+			/* Log the error message */
 			syslog(LOG_INFO,"info: %s\n", msg);
-			// free the allocated space
+			/* Free the allocated space */
 			free(msg);
 		}
 	}
 }
 
-// Log a error to the syslog
+/* Log a error to the syslog */
 static void
 error(const char* err, ...)
 {
-	// va_list struct to load the variable argument list
+	/* va_list struct to load the variable argument list */
 	va_list ap;
 
-	// check if the syslog is open
+	/* Check if the syslog is open */
 	if (!syslog_open)
 		openSysLog();
 
-	// validate printf style error format
+	/* Validate printf style error format */
 	if (err == NULL) {
-		// NULL was supplied. Simply log there was an error!
+		/* NULL was supplied. Simply log there was an error! */
 		syslog(LOG_ERR, "error\n");
 	} else {
-		// generate the C string based on the error format and
-		// the va_list
+		/*
+		 * Generate the C string based on the error format and
+		 * the va_list
+		 */
 		char *msg;
 		int size = 0;
 		do {
@@ -177,38 +184,38 @@ error(const char* err, ...)
 			msg = vmkString(err, &size, ap);
 			va_end(ap);
 		} while(msg == NULL && (size != 0));
-		// Check if the error message got generated without a problem
+		/* Check if the error message got generated without a problem */
 		if (msg == NULL) {
-			// there was an error generating the error message.
-			// Simply log the error format.
+			/* There was an error generating the error message. */
+			/* Simply log the error format. */
 			syslog(LOG_ERR,"error: %s\n", err);
 		} else {
-			// log the error message
+			/* Log the error message */
 			syslog(LOG_ERR,"error: %s\n", msg);
-			// free the allocated space
+			/* Free the allocated space */
 			free(msg);
 		}
 	}
 }
 
-// Create a C string using a printf format string and a va_list
+/* Create a C string using a printf format string and a va_list */
 static char*
 vmkString(const char* format, int *size, va_list ap)
 {
 
-	// argument check
+	/* Argument check */
 	if (format == NULL) {
 		*size = 0;
 		return NULL;
 	}
 
-	// allocate an initial string twice as long as the format string
+	/* Allocate an initial string twice as long as the format string */
 	if ((*size) == 0 )
 		*size = 2 * strlen(format);
 
-	// check the size, to avoid security problems
+	/* Check the size, to avoid security problems */
 	if ((*size) > (1024)) {
-		// do not allocate a string larger than 1Kbyte.
+		/* Do not allocate a string larger than 1Kbyte */
 		*size = 0;
 		return NULL;
 	}
@@ -221,22 +228,28 @@ vmkString(const char* format, int *size, va_list ap)
 		return NULL;
 	}
 
-	// pass the format string and the variable argument list to vsnprintf
+	/* Pass the format string and the variable argument list to vsnprintf */
 	int n = vsnprintf(cstring, *size, format, ap);
 
-	// check if vsnprintf returned successfully
-	// Until glibc 2.0.6 vsnprintf would return -1 when the output was
-	// truncated.
+	/*
+	 * Check if vsnprintf returned successfully
+	 * Until glibc 2.0.6 vsnprintf would return -1 when the output was
+	 * truncated.
+	 */
 	if (n > -1 && n < (*size))
 		return cstring;
 
 	if (n > -1) {
-		// glibc is version 2.1 or greater
-		// set the exact string size
+		/*
+		 * glibc is version 2.1 or greater
+		 * set the exact string size
+		 */
 		*size = n + 1;
 	} else {
-		// old version of glib returns -1
-		// double the size
+		/*
+		 * old version of glib returns -1
+		 * double the size
+		 */
 		*size= 2 * (*size);
 	}
 
@@ -329,9 +342,7 @@ ber_str2bv_wrapper( const char* str, ber_len_t len,
 }
 
 /*
- *
  * Server plugin
- *
  */
 static int
 ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
@@ -339,45 +350,53 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 	unsigned char *password;
 	int pkt_len;
 
-	// The search scope must be either LDAP_SCOPE_SUBTREE or
-	// LDAP_SCOPE_ONELEVEL
+	/*
+	 * The search scope must be either LDAP_SCOPE_SUBTREE or
+	 * LDAP_SCOPE_ONELEVEL
+	 */
 	int scope = LDAP_SCOPE_SUBTREE;
 
-	// The attribute list to be returned, use {NULL} for getting
-	// all attributes
-	//char *attrs[] = {"memberOf", NULL};
+	/*
+	 * The attribute list to be returned, use {NULL} for getting
+	 * all attributes
+	 */
+	/* char *attrs[] = {"memberOf", NULL}; */
 
-	// Specify if only attribute types (1) or both type and value (0)
-	// are returned
+	/*
+	 * Specify if only attribute types (1) or both type and value (0)
+	 * are returned
+	 */
 	int attrsonly = 0;
 
-	// entries_found holds the number of objects found for the LDAP search
+	/* entries_found holds the number of objects found for the LDAP search */
 	int entries_found = 0;
 
-	// dn holds the DN name string of the object(s) returned by the search
+	/* dn holds the DN name string of the object(s) returned by the search */
 	char *dn = "";
 
-	// attribute holds the name of the object(s) attributes returned
-	//char *attribute = "";
+	/* attribute holds the name of the object(s) attributes returned */
+	/* char *attribute = ""; */
 
-	// values is  array to hold the attribute values of the object(s)
-	// attributes
-	//struct berval **values;
+	/*
+	 * values is  array to hold the attribute values of the object(s)
+	 * attributes
+	 */
+	/* struct berval **values; */
 
-	//int i = 0;
+	/* int i = 0; */
 
 #ifdef DEBUG
 	fprintf(stderr, "ldap_auth_server: server plugin invoked\n");
 #endif
-	/* read the password */
+	/* Read the password */
 	if ((pkt_len = vio->read_packet(vio, &password)) < 0)
 		return CR_ERROR;
 
 	myInfo->password_used= PASSWORD_USED_YES;
 
-	//~ vio->info(vio, &vio_info);
-	//~ if (vio_info.protocol != MYSQL_VIO_SOCKET)
-	//~ return CR_ERROR;
+	/*~ vio->info(vio, &vio_info); */
+	/*~ if (vio_info.protocol != MYSQL_VIO_SOCKET) */
+	/*~ return CR_ERROR; */
 
 	LDAP *ld;
 	LDAPMessage *answer, *entry;
@@ -430,14 +449,14 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 		return CR_ERROR;
 	}
 
-	// do we need to free the server credentials?
-	//struct berval* serverCredentials;
+	/* Do we need to free the server credentials? */
+	/* struct berval* serverCredentials; */
 
 #ifdef DEBUG
 	fprintf(stderr, "ldap_auth_server: binding to LDAP server\n");
 #endif
-	//status = (*ldap_sasl_bind_s_wrapper)(ld, CONFIG_BIND_DN,
-	//    LDAP_SASL_SIMPLE, credentials, NULL, NULL, &serverCredentials);
+	/* status = (*ldap_sasl_bind_s_wrapper)(ld, CONFIG_BIND_DN,
+	    LDAP_SASL_SIMPLE, credentials, NULL, NULL, &serverCredentials); */
 	status = (*ldap_sasl_bind_s_wrapper)(ld, CONFIG_BIND_DN,
 	    LDAP_SASL_SIMPLE, credentials, NULL, NULL, NULL);
 	fprintf(stderr, "ldap_auth_server: ldap_sasl_bind_s returned: %s\n",
@@ -458,7 +477,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 		/* Do the LDAP search. */
 		status = (*ldap_search_s_wrapper)(ld, CONFIG_DN, scope,
 		    CONFIG_SEARCH_FILTER, NULL, attrsonly, &answer);
-		    //CONFIG_SEARCH_FILTER, attrs, attrsonly, &answer);
+		    /* CONFIG_SEARCH_FILTER, attrs, attrsonly, &answer); */
 
 		if (status != LDAP_SUCCESS) {
 			fprintf(stderr, "ldap_search_s: %s\n",
@@ -470,16 +489,16 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 
 		char *dn;
 
-		/* cycle through all objects returned with our search */
+		/* Cycle through all objects returned with our search */
 		for (entry = (*ldap_first_entry_p)(ld, answer);
 		    entry != NULL;
 		    entry = (*ldap_next_entry_p)(ld, entry)) {
 
-			/* get DN string of the object */
+			/* Get DN string of the object */
 			dn = (*ldap_get_dn_p)(ld, entry);
 			fprintf(stderr, "Found Object: %s\n", dn);
 
-			// search username from DN
+			/* Search username from DN */
 			if (strstr(dn, myInfo->user_name) != NULL) {
 
 				credentials = (*ber_str2bv_wrapper)(
@@ -500,9 +519,9 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 				fprintf(stderr, "real ldap_auth_server: "
 				    "binding to LDAP server again\n");
 #endif
-				//status = (*ldap_sasl_bind_s_wrapper)(ld, dn,
-				//    LDAP_SASL_SIMPLE, credentials, NULL, NULL,
-				//    &serverCredentials);
+				/* status = (*ldap_sasl_bind_s_wrapper)(ld, dn,
+				    LDAP_SASL_SIMPLE, credentials, NULL, NULL,
+				    &serverCredentials); */
 				status = (*ldap_sasl_bind_s_wrapper)(ld, dn,
 				    LDAP_SASL_SIMPLE, credentials, NULL, NULL,
 				    NULL);
@@ -543,7 +562,7 @@ init(void* omited)
 {
 
 	fprintf(stderr,"init: loading module auth_ldap\n");
-	// config variables
+	/* config variables */
 	const char *_CONFIG_LDAP_URI = NULL;
 	const char *_CONFIG_DN = NULL;
 	const char *_CONFIG_CACERT_FILE = NULL;
@@ -562,13 +581,13 @@ init(void* omited)
 		config_destroy(cf);
 		return(EXIT_FAILURE);
 	}
-	// reading config variables
+	/* Reading config variables */
 	if (config_lookup_string(cf, "ldap.uri", &_CONFIG_LDAP_URI)) {
 		CONFIG_LDAP_URI = strdup(_CONFIG_LDAP_URI);
 		fprintf(stderr, "ldap.uri = %s\n", CONFIG_LDAP_URI);
 	} else
 		fprintf(stderr, "ldap.uri is not defined "
-		    "(e.g. ldap://localhost:389)\n");
+		    "(e.g. ldap:/*localhost:389)\n");
 
 	if (config_lookup_string(cf, "ldap.cacert_file", &_CONFIG_CACERT_FILE)) {
 		CONFIG_CACERT_FILE = strdup(_CONFIG_CACERT_FILE);
@@ -611,7 +630,7 @@ init(void* omited)
 	else
 		fprintf(stderr, "ldap.libldap is not defined "
 		    "(e.g. /usr/lib64/libldap.so)\n");
-	// end of reading the config file
+	/* End of reading the config file */
 
 	fprintf(stderr,"init: openning openLDAP library\n");
 	void *handle = dlopen(CONFIG_LIBLDAP, RTLD_LAZY);
@@ -711,12 +730,12 @@ deinit(void* omited)
 {
 
 	fprintf(stderr,"deinit: unloading module auth_ldap\n");
-	//close libldap dynamic library
+	/* Close libldap dynamic library */
 	if (libldapHandle != NULL) {
 		fprintf(stderr,"deinit: closing openLDAP library\n");
 		dlclose(libldapHandle);
 	}
-	//close syslog
+	/* Close syslog */
 	if (syslog_open) {
 		fprintf(stderr,"deinit: closing syslog. Bye!\n");
 		closelog();
@@ -733,19 +752,19 @@ deinit(void* omited)
 
 mysql_declare_plugin(ldap_auth)
 {
-	MYSQL_AUTHENTICATION_PLUGIN,		// plugin type
-	&ldap_auth_handler,			// pointer to plugin descriptor
-	"auth_ldap",				// plugin name
-	"Charalampos Serenis",			// author
-	"LDAP authentication server plugin",	// description
-	PLUGIN_LICENSE_GPL,			// license
-	init,					// on load function
-	deinit,					// on unload function
-	0x0100,					// version
-	NULL,					// status vars ??
-	NULL,					// system vars ??
-	NULL,					// reserved
-	0,					// flags ??
+	MYSQL_AUTHENTICATION_PLUGIN,		/* Plugin type */
+	&ldap_auth_handler,			/* Ptr to plugin descriptor */
+	"auth_ldap",				/* Plugin name */
+	"Charalampos Serenis",			/* Author */
+	"LDAP authentication server plugin",	/* Description */
+	PLUGIN_LICENSE_GPL,			/* License */
+	init,					/* On load function */
+	deinit,					/* On unload function */
+	0x0100,					/* Version */
+	NULL,					/* Status vars ?? */
+	NULL,					/* System vars ?? */
+	NULL,					/* Reserved */
+	0,					/* Flags ?? */
 } mysql_declare_plugin_end;
 
 static int
@@ -758,7 +777,7 @@ ldap_auth_client(MYSQL_PLUGIN_VIO *vio, MYSQL *mysql)
 
 	++passwordSize;
 
-	// Send password to server plain text
+	/* Send password to server plain text */
 	int status = vio->write_packet(vio, (const unsigned char *)mysql->passwd,
 	    passwordSize);
 
@@ -768,16 +787,16 @@ ldap_auth_client(MYSQL_PLUGIN_VIO *vio, MYSQL *mysql)
 	return CR_OK;
 }
 
-// http://docs.oracle.com/cd/E17952_01/refman-5.5-en/writing-authentication-plugins.html
+/* http://docs.oracle.com/cd/E17952_01/refman-5.5-en/writing-authentication-plugins.html */
 mysql_declare_client_plugin(AUTHENTICATION)
-	"auth_ldap",				// plugin name
-	"Charalampos Serenis",			// author
-	"LDAP authentication client plugin",	// description
-	{1, 0, 0},				// version
-	"GPL",					// license type
-	NULL,					// internal
-	NULL,					// on load function
-	NULL,					// on unload function
-	NULL,					// option handler
-	ldap_auth_client			// pointer to plugin descriptor
+	"auth_ldap",				/* Plugin name */
+	"Charalampos Serenis",			/* Author */
+	"LDAP authentication client plugin",	/* Description */
+	{1, 0, 0},				/* Version */
+	"GPL",					/* License type */
+	NULL,					/* Internal */
+	NULL,					/* On load function */
+	NULL,					/* On unload function */
+	NULL,					/* Option handler */
+	ldap_auth_client			/* Ptr to plugin descriptor */
 mysql_end_client_plugin;
