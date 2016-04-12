@@ -4,20 +4,32 @@ auth_ldap is an authentication module for MySQL 5. Plugable
 authentication is supported by MySQL from version 5.5.7 and up. Any
 attempt to compile this module against MySQL source code older than that
 will fail. Furthermore, in order to support LDAP connectivity the plugin
-requires openLDAP library dynamically compiled. The plugin was tested to
+requires OpenLDAP library dynamically compiled. The plugin was tested to
 compile against openldap version 2.4.23 and up. It is unknown if it
 compiles with older versions.
+This install guide is assuming you are using FreeBSD. It should also 
+work for Linux too with some minor modifications.
 
 [ Configuration ]
 
-Before compiling the plugin you need to configure it. Unfortunately, the
-plugin doesn't support dynamic configuration through a configuration
-file and therefore all its options are statically compiled in the plugin.
-Future releases, will provide a configuration file, but for the time
-being you will have to set the correct options by editing the config.h
-file located inside the src directory. 
+The plugin does support dynamic configuration through a configuration
+file. Sample config file can be like following:
 
-= AUTH_LDAP_URI =
+ldap:
+{
+	uri           = "ldaps://sample_ldap_server";
+	dn            = "dc=sample_company,dc=com";
+	cacert_file   = "/etc/ssl/ldap/ca.crt";
+	bind_dn       = "uid=sample_user,dc=System,dc=sample_company,dc=com";
+	bind_pw       = "sample_password";
+	search_filter = "(objectClass=inetOrgPerson)";
+	libldap       = "/usr/local/lib/libldap.so";
+}
+
+All config variables are required to set.
+The config file name should be /usr/local/etc/mysql-auth_ldap.cfg.
+
+= uri =
 
 A URI is passed verbatim to the ldap_initialize function. The URI has
 the form: schema://hostname:port. If other fields are present, the
@@ -43,122 +55,64 @@ For more information regarding the URI please check the ldap_initialize
 function man page:
 http://linux.die.net/man/3/ldap_initialize
 
-= AUTH_LDAP_BASE_DN =
+= dn =
 
 The LDAP server base DN.
 
-= AUTH_LDAP_OPENLDAP_SO =
+= cacert_file =
 
-The location of the openLDAP dynamic library (.so). Failing to provide
+The CA certficate file that can be used via ldaps connection.
+
+= bind_dn =
+
+Low privileged user DN to login first and search through LDAP directories.
+
+= bind_pw =
+
+Low privileged user password.
+
+= search_filter =
+
+LDAP search filter. It can be like "(objectClass=inetOrgPerson)".
+
+= libldap =
+
+The location of the OpenLDAP dynamic library (.so). Failing to provide
 the plugin with a correct path will led to errors during loading and a
 non functional plugin. Please, provide a full path to the library.
 
-= AUTH_LDAP_SOCKET =
-
-Posible values: 0,1
-
-When AUTH_LDAP_SOCKET is enabled (set to 1) the plugin will only allow
-users to connect through a UNIX domain socket. Off curse, this affects
-only users that will authenticate with the auth_ldap module. If set to 1
-please also see AUTH_LDAP_LOCAL option.
-
-= AUTH_LDAP_LOCAL =
-
-Possible values: 0,1
-
-This option has no affect if the AUTH_LDAP_SOCKET is not enabled. When
-AUTH_LDAP_LOCAL is enabled (set to 1) the plugin will only allow users
-to connect through a UNIX domain socket or localhost. Off curse, this
-affects only users that will authenticate with the auth_ldap module.
-If set to 1 please also see AUTH_LDAP_LOCAL option.
-
-= AUTH_LDAP_DN_PATTERN =
-
-A pattern used to specify the user's DN for binding. The pattern enables
-you to use predefined macros that will be expanded in order to create
-the user's DN. The provided macros are:
-
-%u
-The user's username as specified in the client application
-
-%i
-When the username has the form: username@domain.tld the %i macro expands
-to the username part of the email. If the username does not contain the
-@ character %i expands the same as %u
-
-%d
-When the username has the form: username@domain.tld the %d macro expands
-to the domain part of the email. If the username does not contain the
-@ character %d expands to a zero string.
-
-%d
-Expands to the base DN as specified by AUTH_LDAP_BASE_DN
-
-= AUTH_LDAP_ERROR_LEVEL =
-
-Error level reporting through the system logs. Possible values:
-
-AUTH_LDAP_ERROR
-AUTH_LDAP_INFO
-AUTH_LDAP_DEBUG
-AUTH_LDAP_DEVEL
-
-AUTH_LDAP_ERROR
-Only report errors that are critical (fatal) for the plugin, and invalid
-login attempts.
-
-AUTH_LDAP_INFO
-Log informational messages such as successful plugin loading with
-minimal footprint on system logs. Error messages continue to be logged.
-This setting is recommended for production systems.
-
-AUTH_LDAP_DEBUG
-Log debugging messages about plugin operations. This creates a fairly
-large amount of logging data. This setting should be used on production
-systems. On the other hand, if you wish to evaluate plugin's operation
-compiling with debug messages enabled is encouraged.
-
-AUTH_LDAP_DEVEL
-                     !Attention!
-This setting should never be used in production systems. It creates
-security issues by logging memory addresses, user credentials etc. It is
-only used by developers.
-
-= Other configuration macros =
-
-The file config.h contains a few more configuration macros. These, are
-reserved for future use, and have not been implemented yet. Setting, any
-value to them doesn't have any impact on plugin functionality.
-
 [ Compiling ]
 
-After configuring the plugin you can compile it by typing `make' in the
+After configuring config file you can compile it by typing `gmake' in the
 parent directory of the source. The build system will start with some
-basic tests about openldap availability, API and will continue compiling
-the module. This will create the auth_ldap.so plugin. The first time you
-compile the plugin it is recommended that you set the error logging level
-at least to AUTH_LDAP_INFO, in order to verify that the plugin loads
-correctly.
+basic tests about OpenLDAP availability, API and will continue compiling
+the module. This will create the auth_ldap.so plugin. All logs will be
+written to syslog when it it running.
 
 [ Installing ]
 
-Type `make install' as a superuser to install the plugin. After, you
-installed your plugin you must add a configuration directive your my.cnf
+Type `gmake install' as a superuser to install the plugin. After, you
+installed your plugin you can add a configuration directive your my.cnf
 in order to instruct you server to load the plugin during initialization.
 Edit your my.cnf and add the following line:
 
 plugin-load=auth_ldap.so
 
 under the [mysqld] section. You now must restart your MySQL server for
-the plugin to load. If you check your system logs you should see the
+the plugin to load. If you check your system logs you should see something like
 following lines, indicating that the plugin has loaded successfully:
-
-Oct 14 04:48:58 infoscope mysql-auth_ldap[21516]: info: loading plugin auth_ldap...
-Oct 14 04:48:58 infoscope mysql-auth_ldap[21516]: info: Copyright: Infoscope Hellas, L.P.
-Oct 14 04:48:58 infoscope mysql-auth_ldap[21516]: info: plugin auth_ldap loaded successfully
-
-In order to see the above lines you must configure auth_ldap module with
-at least AUTH_LDAP_INFO error logging.
+...
+Apr 12 03:26:03 testdb1.sample.net mysql-auth_ldap[46121]: info: ldap.uri = ldaps://ldap.sample.net
+Apr 12 03:26:03 testdb1.sample.net mysql-auth_ldap[46121]: info: ldap.cacert_file = /etc/ssl/ldap/ca.crt
+Apr 12 03:26:03 testdb1.sample.net mysql-auth_ldap[46121]: info: ldap.bind_dn = uid=sample_user,dc=System,dc=sample_company,dc=com
+Apr 12 03:26:03 testdb1.sample.net mysql-auth_ldap[46121]: info: ldap.search_filter = (objectClass=inetOrgPerson)
+Apr 12 03:26:03 testdb1.sample.net mysql-auth_ldap[46121]: info: ldap.dn = dc=sample_company,dc=com
+Apr 12 03:26:03 testdb1.sample.net mysql-auth_ldap[46121]: info: ldap.libldap = /usr/local/lib/libldap.so
+Apr 12 03:26:36 testdb1.sample.net mysql-auth_ldap[46121]: info: ldap_auth_server: server plugin invoked
+Apr 12 03:26:36 testdb1.sample.net mysql-auth_ldap[46121]: info: ldap_auth_server: connecting to LDAP server
+Apr 12 03:26:36 testdb1.sample.net mysql-auth_ldap[46121]: info: ldap_auth_server: setting LDAP protocol version to 3
+Apr 12 03:26:36 testdb1.sample.net mysql-auth_ldap[46121]: info: ldap_auth_server: setting LDAP_OPT_X_TLS_CACERTFILE
+...
 
 [ Troubleshooting ]
 
@@ -176,12 +130,12 @@ system paths during compilation. Please, find out the full path to your
 config program by typing which mysql_config and the use the following
 command for compiling the plugin:
 
-make MYSQL_CONFIG=/usr/local/mysql/bin/mysql_config
+gmake MYSQL_CONFIG=/usr/local/bin/mysql_config
 
 If you cannot access mysql_config from console then you will have to
 locate it manually and give its path to the make program, by using the
 forementioned command. Please, note that if some Linux distributions
-have seperate packages for runtime libraries and development files. Just
+have separate packages for runtime libraries and development files. Just
 because you have installed MySQL to your system doesn't mean you have
 the necessary development files installed. In Debian and Ubuntu you
 should install libmysqlclient-dev package.
@@ -199,9 +153,9 @@ in the console.
 
 error: ldap.h: No such file or directory
 
-You do not have openLDAP library installed, or it is not installed in
+You do not have OpenLDAP library installed, or it is not installed in
 system standard paths. If you need to specify the path the library
-header files are installed set the CFLAGS value when invoking make. 
+header files are installed set the CFLAGS value when invoking make.
 e.g.:
 
 make CFLAGS=-I/usr/local/include
@@ -244,4 +198,4 @@ LEX_STRING *default_auth_plugin_name= &native_password_plugin_name;
 
 So you can see that the plugin name is hard coded in the source code.
 Changing this to "auth_ldap" and recompiling might do the trick, but it
-hasn't been tested. 
+hasn't been tested.
