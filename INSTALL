@@ -99,7 +99,12 @@ Edit your my.cnf and add the following line:
 plugin-load=auth_ldap.so
 
 under the [mysqld] section. You now must restart your MySQL server for
-the plugin to load. If you check your system logs you should see something like
+the plugin to load in this case.
+You can also install it via mysql console:
+
+mysql> INSTALL PLUGIN auth_ldap SONAME 'auth_ldap.so';
+
+If you check your system logs you should see something like
 following lines, indicating that the plugin has loaded successfully:
 ...
 Apr 12 03:26:03 testdb1.sample.net mysql-auth_ldap[46121]: info: ldap.uri = ldaps://ldap.sample.net
