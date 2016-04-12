@@ -5,8 +5,8 @@ authentication is supported by MySQL from version 5.5.7 and up. Any
 attempt to compile this module against MySQL source code older than that
 will fail. Furthermore, in order to support LDAP connectivity the plugin
 requires OpenLDAP library dynamically compiled. The plugin was tested to
-compile against openldap version 2.4.23 and up. It is unknown if it
-compiles with older versions.
+compile against openldap-client-2.4.44.
+It is unknown if it compiles with older versions.
 This install guide is assuming you are using FreeBSD. It should also 
 work for Linux too with some minor modifications.
 
