@@ -13,4 +13,5 @@ on and does not require you to alter MySQL source code, or recompile the
 entire server. The plugin add support for LDAP using the OpenLDAP
 library.
 
-For more information about original project please visit http://sourceforge.net/projects/mysqlauthldap/
+For more information about original project please visit:
+http://sourceforge.net/projects/mysqlauthldap/
