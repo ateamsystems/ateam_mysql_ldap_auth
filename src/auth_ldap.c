@@ -585,51 +585,59 @@ init(void* omited)
 	if (config_lookup_string(cf, "ldap.uri", &_CONFIG_LDAP_URI)) {
 		CONFIG_LDAP_URI = strdup(_CONFIG_LDAP_URI);
 		fprintf(stderr, "ldap.uri = %s\n", CONFIG_LDAP_URI);
-	} else
+	} else {
 		fprintf(stderr, "ldap.uri is not defined "
 		    "(e.g. ldap:/*localhost:389)\n");
-
+		return (EXIT_FAILURE);
+	}
 	if (config_lookup_string(cf, "ldap.cacert_file", &_CONFIG_CACERT_FILE)) {
 		CONFIG_CACERT_FILE = strdup(_CONFIG_CACERT_FILE);
 		fprintf(stderr, "ldap.cacert_file = %s\n", CONFIG_CACERT_FILE);
-	} else
+	} else {
 		fprintf(stderr, "ldap.cacert_file is not defined "
 		    "(e.g. /etc/ssl/ldap/ca.crt)\n");
-
+		return (EXIT_FAILURE);
+	}
 	if (config_lookup_string(cf, "ldap.bind_dn", &_CONFIG_BIND_DN)) {
 		CONFIG_BIND_DN = strdup(_CONFIG_BIND_DN);
 		fprintf(stderr, "ldap.bind_dn = %s\n", CONFIG_BIND_DN);
-	} else
+	} else {
 		fprintf(stderr, "ldap.bind_dn is not defined "
 		    "(e.g. uid=user,ou=People,dc=example,dc=com)\n");
-
+		return (EXIT_FAILURE);
+	}
 	if (config_lookup_string(cf, "ldap.bind_pw", &_CONFIG_BIND_PW)) {
 		CONFIG_BIND_PW = strdup(_CONFIG_BIND_PW);
 		fprintf(stderr, "ldap.bind_pw = %s\n", CONFIG_BIND_PW);
-	} else
+	} else {
 		fprintf(stderr, "ldap.bind_pw is not defined\n");
-
+		return (EXIT_FAILURE);
+	}
 	if (config_lookup_string(cf, "ldap.search_filter",
 	    &_CONFIG_SEARCH_FILTER)) {
 		CONFIG_SEARCH_FILTER = strdup(_CONFIG_SEARCH_FILTER);
 		fprintf(stderr, "ldap.search_filter = %s\n",
 		    CONFIG_SEARCH_FILTER);
-	} else
+	} else {
 		fprintf(stderr, "ldap.search_filter is not defined "
 		    "(e.g. (objectClass=inetOrgPerson))\n");
-
+		return (EXIT_FAILURE);
+	}
 	if (config_lookup_string(cf, "ldap.dn", &_CONFIG_DN)) {
 		CONFIG_DN = strdup(_CONFIG_DN);
 		fprintf(stderr, "ldap.dn = %s\n", CONFIG_DN);
-	} else
+	} else {
 		fprintf(stderr, "ldap.dn is not defined "
 		    "(e.g. ou=People,dc=example,dc=com)\n");
-
+		return (EXIT_FAILURE);
+	}
 	if (config_lookup_string(cf, "ldap.libldap", &CONFIG_LIBLDAP))
 		fprintf(stderr, "ldap.libldap = %s\n", CONFIG_LIBLDAP);
-	else
+	else {
 		fprintf(stderr, "ldap.libldap is not defined "
 		    "(e.g. /usr/lib64/libldap.so)\n");
+		return (EXIT_FAILURE);
+	}
 	/* End of reading the config file */
 
 	fprintf(stderr,"init: openning openLDAP library\n");
@@ -700,6 +708,11 @@ init(void* omited)
 		fprintf(stderr, "init: cannot load symbol: ldap_memfree\n");
 		return (EXIT_FAILURE);
 	}
+	void *temp = dlsym(handle, "ldap_err2string");
+	if (temp == NULL) {
+		fprintf(stderr, "init: cannot load symbol: ldap_err2string\n");
+		return (EXIT_FAILURE);
+	}
 
 	ldap_initialize_p = (ldap_initialize_t)initialize;
 	ldap_set_option_p = (ldap_set_option_t)setOption;
@@ -717,7 +730,6 @@ init(void* omited)
 	ber_bvfree_p = (void (*)(struct berval *))ber_free;
 	ldap_memfree_p = (void (*)(void *))memfree;
 
-	void *temp = dlsym(handle, "ldap_err2string");
 	ldap_err2string_p = (char* (*)(int))temp;
 
 	libldapHandle = handle;
