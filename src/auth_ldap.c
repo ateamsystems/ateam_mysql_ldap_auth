@@ -206,7 +206,7 @@ vmkString(const char* format, int *size, va_list ap)
 	/* Argument check */
 	if (format == NULL) {
 		*size = 0;
-		return NULL;
+		return (NULL);
 	}
 
 	/* Allocate an initial string twice as long as the format string */
@@ -217,7 +217,7 @@ vmkString(const char* format, int *size, va_list ap)
 	if ((*size) > (1024)) {
 		/* Do not allocate a string larger than 1Kbyte */
 		*size = 0;
-		return NULL;
+		return (NULL);
 	}
 
 	char *cstring;
@@ -225,7 +225,7 @@ vmkString(const char* format, int *size, va_list ap)
 	if (cstring == NULL) {
 		error("vmkString: cannot allocate memory");
 		*size = 0;
-		return NULL;
+		return (NULL);
 	}
 
 	/* Pass the format string and the variable argument list to vsnprintf */
@@ -237,7 +237,7 @@ vmkString(const char* format, int *size, va_list ap)
 	 * truncated.
 	 */
 	if (n > -1 && n < (*size))
-		return cstring;
+		return (cstring);
 
 	if (n > -1) {
 		/*
@@ -253,7 +253,7 @@ vmkString(const char* format, int *size, va_list ap)
 		*size= 2 * (*size);
 	}
 
-	return NULL;
+	return (NULL);
 }
 
 static int
@@ -262,10 +262,10 @@ ldap_search_s_wrapper(LDAP *ld, char *base, int scope, char *filter,
 {
 
 #ifdef AUTH_LDAP_TEST_API
-	return ldap_search_s(ld, base, scope, filter, attrs, attrsonly, res);
+	return (ldap_search_s(ld, base, scope, filter, attrs, attrsonly, res));
 #else
-	return (*ldap_search_s_p)(ld, base, scope, filter, attrs, attrsonly, 
-	    res);
+	return ((*ldap_search_s_p)(ld, base, scope, filter, attrs, attrsonly,
+	    res));
 #endif
 }
 
@@ -274,9 +274,9 @@ ldap_msgfree_wrapper(LDAPMessage *msg)
 {
 
 #ifdef AUTH_LDAP_TEST_API
-	return ldap_msgfree(msg);
+	return (ldap_msgfree(msg));
 #else
-	return (*ldap_msgfree_p)(msg);
+	return ((*ldap_msgfree_p)(msg));
 #endif
 }
 
@@ -285,9 +285,9 @@ ldap_initialize_wrapper(LDAP** ldp, char *uri)
 {
 
 #ifdef AUTH_LDAP_TEST_API
-	return ldap_initialize(ldp, uri);
+	return (ldap_initialize(ldp, uri));
 #else
-	return (*ldap_initialize_p)(ldp, uri);
+	return ((*ldap_initialize_p)(ldp, uri));
 #endif
 }
 
@@ -296,9 +296,9 @@ ldap_set_option_wrapper(LDAP *ld, int option, const void *invalue)
 {
 
 #ifdef AUTH_LDAP_TEST_API
-	return ldap_set_option(ld, option, invalue);
+	return (ldap_set_option(ld, option, invalue));
 #else
-	return (*ldap_set_option_p)(ld, option, invalue);
+	return ((*ldap_set_option_p)(ld, option, invalue));
 #endif
 }
 
@@ -308,9 +308,9 @@ ldap_unbind_ext_wrapper(LDAP *ld, LDAPControl *sctrls[],
 {
 
 #ifdef AUTH_LDAP_TEST_API
-	return ldap_unbind_ext(ld, sctrls, cctrls);
+	return (ldap_unbind_ext(ld, sctrls, cctrls));
 #else
-	return (*ldap_unbind_ext_p)(ld, sctrls, cctrls);
+	return ((*ldap_unbind_ext_p)(ld, sctrls, cctrls));
 #endif
 }
 
@@ -321,11 +321,11 @@ ldap_sasl_bind_s_wrapper(LDAP *ld, const char *dn,
 {
 
 #ifdef AUTH_LDAP_TEST_API
-	return ldap_sasl_bind_s(ld, dn, mechanism, cred, sctrls, cctrls,
-	    servercredp);
+	return (ldap_sasl_bind_s(ld, dn, mechanism, cred, sctrls, cctrls,
+	    servercredp));
 #else
-	return (*ldap_sasl_bind_s_p)(ld, dn, mechanism, cred, sctrls, cctrls,
-	    servercredp);
+	return ((*ldap_sasl_bind_s_p)(ld, dn, mechanism, cred, sctrls, cctrls,
+	    servercredp));
 #endif
 }
 
@@ -335,9 +335,9 @@ ber_str2bv_wrapper( const char* str, ber_len_t len,
 {
 
 #ifdef AUTH_LDAP_TEST_API
-	return ber_str2bv(str, len, dup, bv);
+	return (ber_str2bv(str, len, dup, bv));
 #else
-	return (*ber_str2bv_p)(str, len, dup, bv);
+	return ((*ber_str2bv_p)(str, len, dup, bv));
 #endif
 }
 
@@ -390,7 +390,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 #endif
 	/* Read the password */
 	if ((pkt_len = vio->read_packet(vio, &password)) < 0)
-		return CR_ERROR;
+		return (CR_ERROR);
 
 	myInfo->password_used= PASSWORD_USED_YES;
 
@@ -408,7 +408,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 	if (status != LDAP_SUCCESS) {
 		fprintf(stderr, "ldap_auth_server: connection to %s failed\n",
 		    CONFIG_LDAP_URI );
-		return CR_ERROR;
+		return (CR_ERROR);
 	}
 
 	int version = LDAP_VERSION3;
@@ -423,7 +423,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 		fprintf(stderr, "ldap_auth_server: cannot set LDAP protocol "
 		    "version to 3\n" );
 		(*ldap_unbind_ext_wrapper)(ld, NULL, NULL);
-		return CR_ERROR;
+		return (CR_ERROR);
 	}
 
 #ifdef DEBUG
@@ -435,7 +435,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 		fprintf(stderr, "ldap_auth_server: cannot set "
 		    "LDAP_OPT_X_TLS_CACERTFILE\n");
 		(*ldap_unbind_ext_wrapper)(ld, NULL, NULL);
-		return CR_ERROR;
+		return (CR_ERROR);
 	}
 
 	fprintf(stderr, "ldap_auth_server: CONFIG_DN: '%s'\n", CONFIG_BIND_DN);
@@ -446,7 +446,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 		fprintf(stderr, "ldap_auth_server: ber_str2bv_wrapper failed\n");
 #endif
 		(*ldap_unbind_ext_wrapper)(ld, NULL, NULL);
-		return CR_ERROR;
+		return (CR_ERROR);
 	}
 
 	/* Do we need to free the server credentials? */
@@ -469,7 +469,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 #endif
 		fprintf(stderr, "ldap_auth_server: ldap_sasl_bind_s "
 		    "returned: %s\n", (*ldap_err2string_p)(status));
-		return CR_ERROR;
+		return (CR_ERROR);
 	} else {
 #ifdef DEBUG
 		fprintf(stderr, "ldap_auth_server: bind succeeded\n");
@@ -483,7 +483,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 			fprintf(stderr, "ldap_search_s: %s\n",
 			    (*ldap_err2string_p)(status));
 			(*ldap_unbind_ext_wrapper)(ld, NULL, NULL);
-			return CR_ERROR;
+			return (CR_ERROR);
 		} else
 			fprintf(stderr, "LDAP search successful.\n");
 
@@ -511,7 +511,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 					(*ldap_memfree_p)(dn);
 					(*ldap_msgfree_wrapper)(answer);
 					(*ldap_unbind_ext_wrapper)(ld, NULL, NULL);
-					return CR_ERROR;
+					return (CR_ERROR);
 				}
 #ifdef DEBUG
 				fprintf(stderr, "real ldap_auth_server: "
@@ -536,11 +536,11 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 					fprintf(stderr, "Second "
 					    "ldap_simple_bind_s: %s\n",
 					    (*ldap_err2string_p)(status));
-					return CR_ERROR;
+					return (CR_ERROR);
 				} else {
 					fprintf(stderr, ">>>>>>>> Second LDAP "
 					    "connection successful.\n");
-					return CR_OK;
+					return (CR_OK);
 				}
 			}
 			(*ldap_memfree_p)(dn);
@@ -548,7 +548,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 		(*ldap_msgfree_wrapper)(answer);
 	}
 	fprintf(stderr, "ldap_auth_server: no such user found\n");
-	return CR_ERROR;
+	return (CR_ERROR);
 }
 
 static struct st_mysql_auth ldap_auth_handler = {
@@ -579,7 +579,7 @@ init(void* omited)
 		    config_error_line(cf),
 		    config_error_text(cf));
 		config_destroy(cf);
-		return(EXIT_FAILURE);
+		return (EXIT_FAILURE);
 	}
 	/* Reading config variables */
 	if (config_lookup_string(cf, "ldap.uri", &_CONFIG_LDAP_URI)) {
@@ -637,68 +637,68 @@ init(void* omited)
 	if (handle == NULL) {
 		fprintf(stderr, "init: cannot open library: %s\n",
 		    CONFIG_LIBLDAP);
-		return 1;
+		return (EXIT_FAILURE);
 	}
 	void *initialize = dlsym(handle, "ldap_initialize");
 	if (initialize == NULL) {
 		fprintf(stderr, "init: cannot load symbol: "
 		    "ldap_initialize\n");
-		return 1;
+		return (EXIT_FAILURE);
 	}
 	void *setOption = dlsym(handle, "ldap_set_option");
 	if (setOption == NULL) {
 		fprintf(stderr, "init: cannot load symbol: ldap_set_option\n");
-		return 1;
+		return (EXIT_FAILURE);
 	}
 	void *unbind = dlsym(handle, "ldap_unbind_ext");
 	if (unbind == NULL) {
 		fprintf(stderr, "init: cannot load symbol: ldap_unbind_ext\n");
-		return 1;
+		return (EXIT_FAILURE);
 	}
 	void *bind = dlsym(handle, "ldap_sasl_bind_s");
 	if (bind == NULL) {
 		fprintf(stderr, "init: cannot load symbol: ldap_sasl_bind_s\n");
-		return 1;
+		return (EXIT_FAILURE);
 	}
 	void *ber = dlsym(handle, "ber_str2bv");
 	if (ber == NULL) {
 		fprintf(stderr, "init: cannot load symbol: ber_str2bv\n");
-		return 1;
+		return (EXIT_FAILURE);
 	}
 	void *ber_free = dlsym(handle, "ber_bvfree");
 	if (ber_free == NULL) {
 		fprintf(stderr, "init: cannot load symbol: ber_bvfree\n");
-		return 1;
+		return (EXIT_FAILURE);
 	}
 	void *search = dlsym(handle, "ldap_search_s");
 	if (search == NULL) {
 		fprintf(stderr, "init: cannot load symbol: ldap_search_s\n");
-		return 1;
+		return (EXIT_FAILURE);
 	}
 	void *first_entry = dlsym(handle, "ldap_first_entry");
 	if (first_entry == NULL) {
 		fprintf(stderr, "init: cannot load symbol: ldap_first_entry\n");
-		return 1;
+		return (EXIT_FAILURE);
 	}
 	void *next_entry = dlsym(handle, "ldap_next_entry");
 	if (next_entry == NULL) {
 		fprintf(stderr, "init: cannot load symbol: ldap_next_entry\n");
-		return 1;
+		return (EXIT_FAILURE);
 	}
 	void *get_dn = dlsym(handle, "ldap_get_dn");
 	if (get_dn == NULL) {
 		fprintf(stderr, "init: cannot load symbol: ldap_get_dn\n");
-		return 1;
+		return (EXIT_FAILURE);
 	}
 	void *msgfree = dlsym(handle, "ldap_msgfree");
 	if (msgfree == NULL) {
 		fprintf(stderr, "init: cannot load symbol: ldap_msgfree\n");
-		return 1;
+		return (EXIT_FAILURE);
 	}
 	void *memfree = dlsym(handle, "ldap_memfree");
 	if (memfree == NULL) {
 		fprintf(stderr, "init: cannot load symbol: ldap_memfree\n");
-		return 1;
+		return (EXIT_FAILURE);
 	}
 
 	ldap_initialize_p = (ldap_initialize_t)initialize;
@@ -722,7 +722,7 @@ init(void* omited)
 
 	libldapHandle = handle;
 
-	return 0;
+	return (0);
 }
 
 static int
@@ -747,7 +747,7 @@ deinit(void* omited)
 	free(CONFIG_DN);
 	config_destroy(cf);
 
-	return 0;
+	return (0);
 }
 
 mysql_declare_plugin(ldap_auth)
@@ -784,7 +784,7 @@ ldap_auth_client(MYSQL_PLUGIN_VIO *vio, MYSQL *mysql)
 	if (status)
 		return CR_ERROR;
 
-	return CR_OK;
+	return (CR_OK);
 }
 
 /* http://docs.oracle.com/cd/E17952_01/refman-5.5-en/writing-authentication-plugins.html */
