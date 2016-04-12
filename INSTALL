@@ -104,7 +104,7 @@ You can also install it via mysql console:
 
 mysql> INSTALL PLUGIN auth_ldap SONAME 'auth_ldap.so';
 
-If you check your system logs you should see something like
+If you enabled DEBUG in source and compiled and installed, you should see something like
 following lines, indicating that the plugin has loaded successfully:
 ...
 Apr 12 03:26:03 testdb1.sample.net mysql-auth_ldap[46121]: info: ldap.uri = ldaps://ldap.sample.net
@@ -117,6 +117,18 @@ Apr 12 03:26:36 testdb1.sample.net mysql-auth_ldap[46121]: info: ldap_auth_serve
 Apr 12 03:26:36 testdb1.sample.net mysql-auth_ldap[46121]: info: ldap_auth_server: connecting to LDAP server
 Apr 12 03:26:36 testdb1.sample.net mysql-auth_ldap[46121]: info: ldap_auth_server: setting LDAP protocol version to 3
 Apr 12 03:26:36 testdb1.sample.net mysql-auth_ldap[46121]: info: ldap_auth_server: setting LDAP_OPT_X_TLS_CACERTFILE
+...
+
+Otherwise you should see something similar to following:
+...
+Apr 12 07:08:08 testdb1.sample.net mysql-auth_ldap[5252]: info: init: loading module auth_ldap
+Apr 12 07:08:08 testdb1.sample.net mysql-auth_ldap[5252]: info: ldap.libldap = /usr/local/lib/libldap.so
+Apr 12 07:08:46 testdb1.sample.net mysql-auth_ldap[5252]: info: ldap_auth_server: binding to LDAP server
+Apr 12 07:08:46 testdb1.sample.net mysql-auth_ldap[5252]: info: LDAP search successful.
+Apr 12 07:08:46 testdb1.sample.net mysql-auth_ldap[5252]: info: >>>>>>>> Authentication to LDAP is successful.
+Apr 12 07:08:59 testdb1.sample.net mysql-auth_ldap[5252]: info: ldap_auth_server: binding to LDAP server
+Apr 12 07:08:59 testdb1.sample.net mysql-auth_ldap[5252]: info: LDAP search successful.
+Apr 12 07:08:59 testdb1.sample.net mysql-auth_ldap[5252]: error: ldap_auth_server: ldap_sasl_bind_s for user returned: Invalid credentials
 ...
 
 [ Troubleshooting ]
