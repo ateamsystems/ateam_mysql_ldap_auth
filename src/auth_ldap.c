@@ -48,7 +48,7 @@ char *CONFIG_DN = NULL;
 const char *CONFIG_LIBLDAP = NULL;
 
 /* For debug, uncomment */
-#define	DEBUG	1
+/* #define	DEBUG	1 */
 
 /* Logging functions */
 static void openSysLog(void);
@@ -386,7 +386,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 	/* int i = 0; */
 
 #ifdef DEBUG
-	fprintf(stderr, "ldap_auth_server: server plugin invoked\n");
+	info("ldap_auth_server: server plugin invoked");
 #endif
 	/* Read the password */
 	if ((pkt_len = vio->read_packet(vio, &password)) < 0)
@@ -402,11 +402,11 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 	LDAPMessage *answer, *entry;
 
 #ifdef DEBUG
-	fprintf(stderr, "ldap_auth_server: connecting to LDAP server\n" );
+	info("ldap_auth_server: connecting to LDAP server" );
 #endif
 	int status = (*ldap_initialize_wrapper)(&ld, CONFIG_LDAP_URI);
 	if (status != LDAP_SUCCESS) {
-		fprintf(stderr, "ldap_auth_server: connection to %s failed\n",
+		error("ldap_auth_server: connection to %s failed",
 		    CONFIG_LDAP_URI );
 		return (CR_ERROR);
 	}
@@ -414,36 +414,38 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 	int version = LDAP_VERSION3;
 
 #ifdef DEBUG
-	fprintf(stderr, "ldap_auth_server: "
-	    "setting LDAP protocol version to 3\n");
+	info("ldap_auth_server: "
+	    "setting LDAP protocol version to 3");
 #endif
 	status = (*ldap_set_option_wrapper)(ld, LDAP_OPT_PROTOCOL_VERSION,
 	    &version);
 	if (status != LDAP_OPT_SUCCESS) {
-		fprintf(stderr, "ldap_auth_server: cannot set LDAP protocol "
-		    "version to 3\n" );
+		error("ldap_auth_server: cannot set LDAP protocol "
+		    "version to 3" );
 		(*ldap_unbind_ext_wrapper)(ld, NULL, NULL);
 		return (CR_ERROR);
 	}
 
 #ifdef DEBUG
-	fprintf(stderr, "ldap_auth_server: setting LDAP_OPT_X_TLS_CACERTFILE\n");
+	info("ldap_auth_server: setting LDAP_OPT_X_TLS_CACERTFILE");
 #endif
 	status = (*ldap_set_option_wrapper)(ld, LDAP_OPT_X_TLS_CACERTFILE,
 	    (void *)CONFIG_CACERT_FILE);
 	if (status != LDAP_OPT_SUCCESS) {
-		fprintf(stderr, "ldap_auth_server: cannot set "
-		    "LDAP_OPT_X_TLS_CACERTFILE\n");
+		error("ldap_auth_server: cannot set "
+		    "LDAP_OPT_X_TLS_CACERTFILE");
 		(*ldap_unbind_ext_wrapper)(ld, NULL, NULL);
 		return (CR_ERROR);
 	}
 
-	fprintf(stderr, "ldap_auth_server: CONFIG_DN: '%s'\n", CONFIG_BIND_DN);
+#ifdef DEBUG
+	info("ldap_auth_server: CONFIG_DN: '%s'", CONFIG_BIND_DN);
+#endif
 	struct berval* credentials = (*ber_str2bv_wrapper)(
 	    (char*)CONFIG_BIND_PW, 0, 0, NULL);
 	if (credentials == NULL) {
 #ifdef DEBUG
-		fprintf(stderr, "ldap_auth_server: ber_str2bv_wrapper failed\n");
+		error("ldap_auth_server: ber_str2bv_wrapper failed");
 #endif
 		(*ldap_unbind_ext_wrapper)(ld, NULL, NULL);
 		return (CR_ERROR);
@@ -452,27 +454,22 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 	/* Do we need to free the server credentials? */
 	/* struct berval* serverCredentials; */
 
-#ifdef DEBUG
-	fprintf(stderr, "ldap_auth_server: binding to LDAP server\n");
-#endif
+	info("ldap_auth_server: binding to LDAP server");
 	/* status = (*ldap_sasl_bind_s_wrapper)(ld, CONFIG_BIND_DN,
 	    LDAP_SASL_SIMPLE, credentials, NULL, NULL, &serverCredentials); */
 	status = (*ldap_sasl_bind_s_wrapper)(ld, CONFIG_BIND_DN,
 	    LDAP_SASL_SIMPLE, credentials, NULL, NULL, NULL);
-	fprintf(stderr, "ldap_auth_server: ldap_sasl_bind_s returned: %s\n",
-	    (*ldap_err2string_p)(status));
-
 	if (status != LDAP_SUCCESS) {
 		(*ldap_unbind_ext_wrapper)(ld, NULL, NULL);
+		error("ldap_auth_server: bind failed");
 #ifdef DEBUG
-		fprintf(stderr, "ldap_auth_server: bind failed\n");
+		error("ldap_auth_server: ldap_sasl_bind_s for low priv user "
+		    "returned: %s", (*ldap_err2string_p)(status));
 #endif
-		fprintf(stderr, "ldap_auth_server: ldap_sasl_bind_s "
-		    "returned: %s\n", (*ldap_err2string_p)(status));
 		return (CR_ERROR);
 	} else {
 #ifdef DEBUG
-		fprintf(stderr, "ldap_auth_server: bind succeeded\n");
+		info("ldap_auth_server: bind succeeded");
 #endif
 		/* Do the LDAP search. */
 		status = (*ldap_search_s_wrapper)(ld, CONFIG_DN, scope,
@@ -480,12 +477,12 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 		    /* CONFIG_SEARCH_FILTER, attrs, attrsonly, &answer); */
 
 		if (status != LDAP_SUCCESS) {
-			fprintf(stderr, "ldap_search_s: %s\n",
+			error("ldap_search_s: %s",
 			    (*ldap_err2string_p)(status));
 			(*ldap_unbind_ext_wrapper)(ld, NULL, NULL);
 			return (CR_ERROR);
 		} else
-			fprintf(stderr, "LDAP search successful.\n");
+			info("LDAP search successful.");
 
 		char *dn;
 
@@ -496,8 +493,9 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 
 			/* Get DN string of the object */
 			dn = (*ldap_get_dn_p)(ld, entry);
-			fprintf(stderr, "Found Object: %s\n", dn);
-
+#ifdef DEBUG
+			info("Found Object: %s", dn);
+#endif
 			/* Search username from DN */
 			if (strstr(dn, myInfo->user_name) != NULL) {
 
@@ -505,8 +503,8 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 				    (char*)password, 0, 0, NULL);
 				if (credentials == NULL) {
 #ifdef DEBUG
-					fprintf(stderr, "ldap_auth_server: "
-					    "ber_str2bv_wrapper failed\n");
+					error("ldap_auth_server: "
+					    "ber_str2bv_wrapper failed");
 #endif
 					(*ldap_memfree_p)(dn);
 					(*ldap_msgfree_wrapper)(answer);
@@ -514,10 +512,10 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 					return (CR_ERROR);
 				}
 #ifdef DEBUG
-				fprintf(stderr, "real ldap_auth_server: "
-				    "dn: '%s'\n", dn);
-				fprintf(stderr, "real ldap_auth_server: "
-				    "binding to LDAP server again\n");
+				info("ldap_auth_server: "
+				    "user dn: '%s'", dn);
+				info("ldap_auth_server: "
+				    "binding to LDAP server again using user DN");
 #endif
 				/* status = (*ldap_sasl_bind_s_wrapper)(ld, dn,
 				    LDAP_SASL_SIMPLE, credentials, NULL, NULL,
@@ -525,21 +523,18 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 				status = (*ldap_sasl_bind_s_wrapper)(ld, dn,
 				    LDAP_SASL_SIMPLE, credentials, NULL, NULL,
 				    NULL);
-				fprintf(stderr, "ldap_auth_server: "
-				    "ldap_sasl_bind_s returned: %s\n",
-				    (*ldap_err2string_p)(status) );
 				(*ldap_memfree_p)(dn);
 				(*ldap_msgfree_wrapper)(answer);
 				(*ldap_unbind_ext_wrapper)(ld, NULL, NULL);
 
 				if (status != LDAP_SUCCESS) {
-					fprintf(stderr, "Second "
-					    "ldap_simple_bind_s: %s\n",
-					    (*ldap_err2string_p)(status));
+					error("ldap_auth_server: "
+					    "ldap_sasl_bind_s for user returned: %s",
+					    (*ldap_err2string_p)(status) );
 					return (CR_ERROR);
 				} else {
-					fprintf(stderr, ">>>>>>>> Second LDAP "
-					    "connection successful.\n");
+					info(">>>>>>>> Authentication to LDAP "
+					    "is successful.");
 					return (CR_OK);
 				}
 			}
@@ -547,7 +542,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 		}
 		(*ldap_msgfree_wrapper)(answer);
 	}
-	fprintf(stderr, "ldap_auth_server: no such user found\n");
+	info("ldap_auth_server: no such user was found");
 	return (CR_ERROR);
 }
 
@@ -561,7 +556,7 @@ static int
 init(void* omited)
 {
 
-	fprintf(stderr,"init: loading module auth_ldap\n");
+	info("init: loading module auth_ldap");
 	/* config variables */
 	const char *_CONFIG_LDAP_URI = NULL;
 	const char *_CONFIG_DN = NULL;
@@ -574,7 +569,7 @@ init(void* omited)
 	config_init(cf);
 
 	if (!config_read_file(cf, "/usr/local/etc/mysql-auth_ldap.cfg")) {
-		fprintf(stderr, "%s:%d - %s\n",
+		error("%s:%d - %s",
 		    config_error_file(cf),
 		    config_error_line(cf),
 		    config_error_text(cf));
@@ -584,133 +579,145 @@ init(void* omited)
 	/* Reading config variables */
 	if (config_lookup_string(cf, "ldap.uri", &_CONFIG_LDAP_URI)) {
 		CONFIG_LDAP_URI = strdup(_CONFIG_LDAP_URI);
-		fprintf(stderr, "ldap.uri = %s\n", CONFIG_LDAP_URI);
+#ifdef DEBUG
+		info("ldap.uri = %s", CONFIG_LDAP_URI);
+#endif
 	} else {
-		fprintf(stderr, "ldap.uri is not defined "
-		    "(e.g. ldap:/*localhost:389)\n");
+		error("ldap.uri is not defined "
+		    "(e.g. ldap:/*localhost:389)");
 		return (EXIT_FAILURE);
 	}
 	if (config_lookup_string(cf, "ldap.cacert_file", &_CONFIG_CACERT_FILE)) {
 		CONFIG_CACERT_FILE = strdup(_CONFIG_CACERT_FILE);
-		fprintf(stderr, "ldap.cacert_file = %s\n", CONFIG_CACERT_FILE);
+#ifdef DEBUG
+		info("ldap.cacert_file = %s", CONFIG_CACERT_FILE);
+#endif
 	} else {
-		fprintf(stderr, "ldap.cacert_file is not defined "
-		    "(e.g. /etc/ssl/ldap/ca.crt)\n");
+		error("ldap.cacert_file is not defined "
+		    "(e.g. /etc/ssl/ldap/ca.crt)");
 		return (EXIT_FAILURE);
 	}
 	if (config_lookup_string(cf, "ldap.bind_dn", &_CONFIG_BIND_DN)) {
 		CONFIG_BIND_DN = strdup(_CONFIG_BIND_DN);
-		fprintf(stderr, "ldap.bind_dn = %s\n", CONFIG_BIND_DN);
+#ifdef DEBUG
+		info("ldap.bind_dn = %s", CONFIG_BIND_DN);
+#endif
 	} else {
-		fprintf(stderr, "ldap.bind_dn is not defined "
-		    "(e.g. uid=user,ou=People,dc=example,dc=com)\n");
+		error("ldap.bind_dn is not defined "
+		    "(e.g. uid=user,ou=People,dc=example,dc=com)");
 		return (EXIT_FAILURE);
 	}
 	if (config_lookup_string(cf, "ldap.bind_pw", &_CONFIG_BIND_PW)) {
 		CONFIG_BIND_PW = strdup(_CONFIG_BIND_PW);
-		fprintf(stderr, "ldap.bind_pw = %s\n", CONFIG_BIND_PW);
+#ifdef DEBUG
+		info("ldap.bind_pw = %s", CONFIG_BIND_PW);
+#endif
 	} else {
-		fprintf(stderr, "ldap.bind_pw is not defined\n");
+		error("ldap.bind_pw is not defined");
 		return (EXIT_FAILURE);
 	}
 	if (config_lookup_string(cf, "ldap.search_filter",
 	    &_CONFIG_SEARCH_FILTER)) {
 		CONFIG_SEARCH_FILTER = strdup(_CONFIG_SEARCH_FILTER);
-		fprintf(stderr, "ldap.search_filter = %s\n",
+#ifdef DEBUG
+		info("ldap.search_filter = %s",
 		    CONFIG_SEARCH_FILTER);
+#endif
 	} else {
-		fprintf(stderr, "ldap.search_filter is not defined "
-		    "(e.g. (objectClass=inetOrgPerson))\n");
+		error("ldap.search_filter is not defined "
+		    "(e.g. (objectClass=inetOrgPerson))");
 		return (EXIT_FAILURE);
 	}
 	if (config_lookup_string(cf, "ldap.dn", &_CONFIG_DN)) {
 		CONFIG_DN = strdup(_CONFIG_DN);
-		fprintf(stderr, "ldap.dn = %s\n", CONFIG_DN);
+#ifdef DEBUG
+		info("ldap.dn = %s", CONFIG_DN);
+#endif
 	} else {
-		fprintf(stderr, "ldap.dn is not defined "
-		    "(e.g. ou=People,dc=example,dc=com)\n");
+		error("ldap.dn is not defined "
+		    "(e.g. ou=People,dc=example,dc=com)");
 		return (EXIT_FAILURE);
 	}
 	if (config_lookup_string(cf, "ldap.libldap", &CONFIG_LIBLDAP))
-		fprintf(stderr, "ldap.libldap = %s\n", CONFIG_LIBLDAP);
+		info("ldap.libldap = %s", CONFIG_LIBLDAP);
 	else {
-		fprintf(stderr, "ldap.libldap is not defined "
-		    "(e.g. /usr/lib64/libldap.so)\n");
+		error("ldap.libldap is not defined "
+		    "(e.g. /usr/lib64/libldap.so)");
 		return (EXIT_FAILURE);
 	}
 	/* End of reading the config file */
 
-	fprintf(stderr,"init: openning openLDAP library\n");
+	info("init: openning openLDAP library");
 	void *handle = dlopen(CONFIG_LIBLDAP, RTLD_LAZY);
 	if (handle == NULL) {
-		fprintf(stderr, "init: cannot open library: %s\n",
+		error("init: cannot open library: %s",
 		    CONFIG_LIBLDAP);
 		return (EXIT_FAILURE);
 	}
 	void *initialize = dlsym(handle, "ldap_initialize");
 	if (initialize == NULL) {
-		fprintf(stderr, "init: cannot load symbol: "
-		    "ldap_initialize\n");
+		error("init: cannot load symbol: "
+		    "ldap_initialize");
 		return (EXIT_FAILURE);
 	}
 	void *setOption = dlsym(handle, "ldap_set_option");
 	if (setOption == NULL) {
-		fprintf(stderr, "init: cannot load symbol: ldap_set_option\n");
+		error("init: cannot load symbol: ldap_set_option");
 		return (EXIT_FAILURE);
 	}
 	void *unbind = dlsym(handle, "ldap_unbind_ext");
 	if (unbind == NULL) {
-		fprintf(stderr, "init: cannot load symbol: ldap_unbind_ext\n");
+		error("init: cannot load symbol: ldap_unbind_ext");
 		return (EXIT_FAILURE);
 	}
 	void *bind = dlsym(handle, "ldap_sasl_bind_s");
 	if (bind == NULL) {
-		fprintf(stderr, "init: cannot load symbol: ldap_sasl_bind_s\n");
+		error("init: cannot load symbol: ldap_sasl_bind_s");
 		return (EXIT_FAILURE);
 	}
 	void *ber = dlsym(handle, "ber_str2bv");
 	if (ber == NULL) {
-		fprintf(stderr, "init: cannot load symbol: ber_str2bv\n");
+		error("init: cannot load symbol: ber_str2bv");
 		return (EXIT_FAILURE);
 	}
 	void *ber_free = dlsym(handle, "ber_bvfree");
 	if (ber_free == NULL) {
-		fprintf(stderr, "init: cannot load symbol: ber_bvfree\n");
+		error("init: cannot load symbol: ber_bvfree");
 		return (EXIT_FAILURE);
 	}
 	void *search = dlsym(handle, "ldap_search_s");
 	if (search == NULL) {
-		fprintf(stderr, "init: cannot load symbol: ldap_search_s\n");
+		error("init: cannot load symbol: ldap_search_s");
 		return (EXIT_FAILURE);
 	}
 	void *first_entry = dlsym(handle, "ldap_first_entry");
 	if (first_entry == NULL) {
-		fprintf(stderr, "init: cannot load symbol: ldap_first_entry\n");
+		error("init: cannot load symbol: ldap_first_entry");
 		return (EXIT_FAILURE);
 	}
 	void *next_entry = dlsym(handle, "ldap_next_entry");
 	if (next_entry == NULL) {
-		fprintf(stderr, "init: cannot load symbol: ldap_next_entry\n");
+		error("init: cannot load symbol: ldap_next_entry");
 		return (EXIT_FAILURE);
 	}
 	void *get_dn = dlsym(handle, "ldap_get_dn");
 	if (get_dn == NULL) {
-		fprintf(stderr, "init: cannot load symbol: ldap_get_dn\n");
+		error("init: cannot load symbol: ldap_get_dn");
 		return (EXIT_FAILURE);
 	}
 	void *msgfree = dlsym(handle, "ldap_msgfree");
 	if (msgfree == NULL) {
-		fprintf(stderr, "init: cannot load symbol: ldap_msgfree\n");
+		error("init: cannot load symbol: ldap_msgfree");
 		return (EXIT_FAILURE);
 	}
 	void *memfree = dlsym(handle, "ldap_memfree");
 	if (memfree == NULL) {
-		fprintf(stderr, "init: cannot load symbol: ldap_memfree\n");
+		error("init: cannot load symbol: ldap_memfree");
 		return (EXIT_FAILURE);
 	}
 	void *temp = dlsym(handle, "ldap_err2string");
 	if (temp == NULL) {
-		fprintf(stderr, "init: cannot load symbol: ldap_err2string\n");
+		error("init: cannot load symbol: ldap_err2string");
 		return (EXIT_FAILURE);
 	}
 
@@ -741,15 +748,15 @@ static int
 deinit(void* omited)
 {
 
-	fprintf(stderr,"deinit: unloading module auth_ldap\n");
+	info("deinit: unloading module auth_ldap");
 	/* Close libldap dynamic library */
 	if (libldapHandle != NULL) {
-		fprintf(stderr,"deinit: closing openLDAP library\n");
+		info("deinit: closing openLDAP library");
 		dlclose(libldapHandle);
 	}
 	/* Close syslog */
 	if (syslog_open) {
-		fprintf(stderr,"deinit: closing syslog. Bye!\n");
+		info("deinit: closing syslog. Bye!");
 		closelog();
 	}
 	free(CONFIG_SEARCH_FILTER);
