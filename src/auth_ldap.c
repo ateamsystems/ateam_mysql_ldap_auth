@@ -486,6 +486,18 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 
 		char *dn;
 
+		/* uid string, like 'uid=george,' */
+		int len = strlen(myInfo->user_name) + 6;
+		char *uid_str = (char *)malloc(sizeof(char) * len);
+		if (uid_str == NULL) {
+			error("malloc error");
+			(*ldap_unbind_ext_wrapper)(ld, NULL, NULL);
+			return (CR_ERROR);
+		}
+		snprintf(uid_str, len, "uid=%s,", myInfo->user_name);
+#ifdef DEBUG
+		info("uid string: %s\n", uid_str);
+#endif
 		/* Cycle through all objects returned with our search */
 		for (entry = (*ldap_first_entry_p)(ld, answer);
 		    entry != NULL;
@@ -496,8 +508,8 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 #ifdef DEBUG
 			info("Found Object: %s", dn);
 #endif
-			/* Search username from DN */
-			if (strstr(dn, myInfo->user_name) != NULL) {
+			/* Search uid from DN */
+			if (strstr(dn, uid_str) != NULL) {
 
 				credentials = (*ber_str2bv_wrapper)(
 				    (char*)password, 0, 0, NULL);
@@ -540,6 +552,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 			}
 			(*ldap_memfree_p)(dn);
 		}
+		free(uid_str);
 		(*ldap_msgfree_wrapper)(answer);
 	}
 	info("ldap_auth_server: no such user was found");
