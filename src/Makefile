@@ -1,5 +1,5 @@
 TARGET=auth_ldap.so
-CC=gcc
+CC=gcc48
 INCLUDES=`mysql_config --cflags` -fPIC -DMYSQL_DYNAMIC_PLUGIN
 CFLAGS=
 CPPFLAGS=
@@ -12,10 +12,10 @@ all: api-test
 	$(MAKE) $(TARGET)
 
 $(TARGET): auth_ldap.o
-	gcc -shared -lconfig -o $@ $<
+	$(CC) -shared -lconfig -o $@ $<
 
 auth_ldap.o: auth_ldap.c
-	gcc $(CPPFLAGS) $(CFLAGS) $(INCLUDES) -c $< -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:
 	rm -f auth_ldap.o auth_ldap.so
