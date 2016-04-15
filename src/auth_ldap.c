@@ -49,9 +49,12 @@ const char *CONFIG_LIBLDAP = NULL;
 
 /* For debug, uncomment */
 /* #define	DEBUG	1 */
-int log_level = LOG_INFO; /* This should be moved to the config file */
+
+/* This should be moved to the config file */
 #ifdef DEBUG
-   log_level = LOG_DEBUG;
+   int log_level = LOG_DEBUG;
+#else
+   int log_level = LOG_INFO;
 #endif
 
 /* Logging functions */
@@ -132,7 +135,7 @@ log_message(int message_type, const char* message, ...)
 		openSysLog();
 
    /* See if the message is going to get logged with our setting */
-   if ( message_type < log_level ) {
+   if ( message_type > log_level ) {
       /* Below our level, don't do anything */
       return;
       }
@@ -417,7 +420,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 		return (CR_ERROR);
 	}
 
-	log_message(LOG_DEBUG, "Starting initial bind as '%s'", CONFIG_BIND_DN);
+	log_message(LOG_DEBUG, "starting initial bind as '%s'", CONFIG_BIND_DN);
 	struct berval* credentials = (*ber_str2bv_wrapper)(
 	    (char*)CONFIG_BIND_PW, 0, 0, NULL);
 	if (credentials == NULL) {
@@ -429,7 +432,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 	/* Do we need to free the server credentials? */
 	/* struct berval* serverCredentials; */
 
-	log_message(LOG_DEBUG, "Binding to LDAP server");
+	log_message(LOG_DEBUG, "binding to LDAP server");
 	/* status = (*ldap_sasl_bind_s_wrapper)(ld, CONFIG_BIND_DN,
 	    LDAP_SASL_SIMPLE, credentials, NULL, NULL, &serverCredentials); */
 	status = (*ldap_sasl_bind_s_wrapper)(ld, CONFIG_BIND_DN,
@@ -474,7 +477,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 
 			/* Get DN string of the object */
 			dn = (*ldap_get_dn_p)(ld, entry);
-			log_message(LOG_DEBUG, "found matching object: %s", dn);
+			log_message(LOG_DEBUG, "found candidate object: %s", dn);
 			/* Search uid from DN */
 			if (strstr(dn, uid_str) != NULL) {
 
@@ -497,13 +500,13 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 				(*ldap_unbind_ext_wrapper)(ld, NULL, NULL);
 
 				if (status != LDAP_SUCCESS) {
-					log_message(LOG_ERR, "authentication for user %s (%s) failed: %s",
+					log_message(LOG_ERR, "authentication failed for user %s (%s): %s",
                    myInfo->user_name,
                    dn,
 					    (*ldap_err2string_p)(status) );
 					return (CR_ERROR);
 				} else {
-					log_message(LOG_INFO, "authentication succeeded for %s",
+					log_message(LOG_INFO, "authentication succeeded for user %s",
 					    myInfo->user_name);
 					return (CR_OK);
 				}
@@ -513,7 +516,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 		free(uid_str);
 		(*ldap_msgfree_wrapper)(answer);
 	}
-   log_message(LOG_ERR, "authentication for user %s failed: user not found",
+   log_message(LOG_ERR, "authentication failed for user %s: user not found in directory",
        myInfo->user_name);
 	return (CR_ERROR);
 }
@@ -528,7 +531,7 @@ static int
 init(void* omited)
 {
 
-	log_message(LOG_INFO, "loading module ateam_mysql_ldap_auth");
+	log_message(LOG_INFO, "loading module ateam_mysql_ldap_auth (log level %i)", log_level);
 	/* config variables */
 	const char *_CONFIG_LDAP_URI = NULL;
 	const char *_CONFIG_DN = NULL;
@@ -575,7 +578,7 @@ init(void* omited)
 	}
 	if (config_lookup_string(cf, "ldap.bind_pw", &_CONFIG_BIND_PW)) {
 		CONFIG_BIND_PW = strdup(_CONFIG_BIND_PW);
-		log_message(LOG_DEBUG, "ldap.bind_pw = %s", CONFIG_BIND_PW);
+		log_message(LOG_DEBUG, "ldap.bind_pw = xxxxxxx");
 	} else {
 		log_message(LOG_ERR, "ldap.bind_pw is not defined");
 		return (EXIT_FAILURE);
@@ -599,7 +602,7 @@ init(void* omited)
 		return (EXIT_FAILURE);
 	}
 	if (config_lookup_string(cf, "ldap.libldap", &CONFIG_LIBLDAP))
-		log_message(LOG_INFO, "ldap.libldap = %s", CONFIG_LIBLDAP);
+		log_message(LOG_DEBUG, "ldap.libldap = %s", CONFIG_LIBLDAP);
 	else {
 		log_message(LOG_ERR, "ldap.libldap is not defined "
 		    "(e.g. /usr/lib64/libldap.so)");
@@ -607,77 +610,77 @@ init(void* omited)
 	}
 	/* End of reading the config file */
 
-	log_message(LOG_INFO, "init: openning openLDAP library");
+	log_message(LOG_DEBUG, "opening OpenLDAP library");
 	void *handle = dlopen(CONFIG_LIBLDAP, RTLD_LAZY);
 	if (handle == NULL) {
-		log_message(LOG_ERR, "init: cannot open library: %s",
+		log_message(LOG_ERR, "cannot open library: %s",
 		    CONFIG_LIBLDAP);
 		return (EXIT_FAILURE);
 	}
 	void *initialize = dlsym(handle, "ldap_initialize");
 	if (initialize == NULL) {
-		log_message(LOG_ERR, "init: cannot load symbol: "
+		log_message(LOG_ERR, "cannot load symbol: "
 		    "ldap_initialize");
 		return (EXIT_FAILURE);
 	}
 	void *setOption = dlsym(handle, "ldap_set_option");
 	if (setOption == NULL) {
-		log_message(LOG_ERR, "init: cannot load symbol: ldap_set_option");
+		log_message(LOG_ERR, "cannot load symbol: ldap_set_option");
 		return (EXIT_FAILURE);
 	}
 	void *unbind = dlsym(handle, "ldap_unbind_ext");
 	if (unbind == NULL) {
-		log_message(LOG_ERR, "init: cannot load symbol: ldap_unbind_ext");
+		log_message(LOG_ERR, "cannot load symbol: ldap_unbind_ext");
 		return (EXIT_FAILURE);
 	}
 	void *bind = dlsym(handle, "ldap_sasl_bind_s");
 	if (bind == NULL) {
-		log_message(LOG_ERR, "init: cannot load symbol: ldap_sasl_bind_s");
+		log_message(LOG_ERR, "cannot load symbol: ldap_sasl_bind_s");
 		return (EXIT_FAILURE);
 	}
 	void *ber = dlsym(handle, "ber_str2bv");
 	if (ber == NULL) {
-		log_message(LOG_ERR, "init: cannot load symbol: ber_str2bv");
+		log_message(LOG_ERR, "cannot load symbol: ber_str2bv");
 		return (EXIT_FAILURE);
 	}
 	void *ber_free = dlsym(handle, "ber_bvfree");
 	if (ber_free == NULL) {
-		log_message(LOG_ERR, "init: cannot load symbol: ber_bvfree");
+		log_message(LOG_ERR, "cannot load symbol: ber_bvfree");
 		return (EXIT_FAILURE);
 	}
 	void *search = dlsym(handle, "ldap_search_s");
 	if (search == NULL) {
-		log_message(LOG_ERR, "init: cannot load symbol: ldap_search_s");
+		log_message(LOG_ERR, "cannot load symbol: ldap_search_s");
 		return (EXIT_FAILURE);
 	}
 	void *first_entry = dlsym(handle, "ldap_first_entry");
 	if (first_entry == NULL) {
-		log_message(LOG_ERR, "init: cannot load symbol: ldap_first_entry");
+		log_message(LOG_ERR, "cannot load symbol: ldap_first_entry");
 		return (EXIT_FAILURE);
 	}
 	void *next_entry = dlsym(handle, "ldap_next_entry");
 	if (next_entry == NULL) {
-		log_message(LOG_ERR, "init: cannot load symbol: ldap_next_entry");
+		log_message(LOG_ERR, "cannot load symbol: ldap_next_entry");
 		return (EXIT_FAILURE);
 	}
 	void *get_dn = dlsym(handle, "ldap_get_dn");
 	if (get_dn == NULL) {
-		log_message(LOG_ERR, "init: cannot load symbol: ldap_get_dn");
+		log_message(LOG_ERR, "cannot load symbol: ldap_get_dn");
 		return (EXIT_FAILURE);
 	}
 	void *msgfree = dlsym(handle, "ldap_msgfree");
 	if (msgfree == NULL) {
-		log_message(LOG_ERR, "init: cannot load symbol: ldap_msgfree");
+		log_message(LOG_ERR, "cannot load symbol: ldap_msgfree");
 		return (EXIT_FAILURE);
 	}
 	void *memfree = dlsym(handle, "ldap_memfree");
 	if (memfree == NULL) {
-		log_message(LOG_ERR, "init: cannot load symbol: ldap_memfree");
+		log_message(LOG_ERR, "cannot load symbol: ldap_memfree");
 		return (EXIT_FAILURE);
 	}
 	void *temp = dlsym(handle, "ldap_err2string");
 	if (temp == NULL) {
-		log_message(LOG_ERR, "init: cannot load symbol: ldap_err2string");
+		log_message(LOG_ERR, "cannot load symbol: ldap_err2string");
 		return (EXIT_FAILURE);
 	}
 
@@ -733,7 +736,7 @@ mysql_declare_plugin(ldap_auth)
 {
 	MYSQL_AUTHENTICATION_PLUGIN,		/* Plugin type */
 	&ldap_auth_handler,			      /* Ptr to plugin descriptor */
-	"ateam_mysql_ldap_auth",		   /* Plugin name */
+	"auth_ldap",		               /* Plugin name */
 	"A-Team Systems",			         /* Author */
 	"LDAP authentication server plugin",	/* Description */
 	PLUGIN_LICENSE_GPL,			      /* License */
