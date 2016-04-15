@@ -561,7 +561,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 
 static struct st_mysql_auth ldap_auth_handler = {
 	MYSQL_AUTHENTICATION_INTERFACE_VERSION,
-	"auth_ldap",
+	"mysql_clear_password",		/* required for client-side */
 	ldap_auth_server
 };
 
@@ -818,17 +818,3 @@ ldap_auth_client(MYSQL_PLUGIN_VIO *vio, MYSQL *mysql)
 
 	return (CR_OK);
 }
-
-/* http://docs.oracle.com/cd/E17952_01/refman-5.5-en/writing-authentication-plugins.html */
-mysql_declare_client_plugin(AUTHENTICATION)
-	"auth_ldap",				/* Plugin name */
-	"Charalampos Serenis",			/* Author */
-	"LDAP authentication client plugin",	/* Description */
-	{1, 0, 0},				/* Version */
-	"GPL",					/* License type */
-	NULL,					/* Internal */
-	NULL,					/* On load function */
-	NULL,					/* On unload function */
-	NULL,					/* Option handler */
-	ldap_auth_client			/* Ptr to plugin descriptor */
-mysql_end_client_plugin;
