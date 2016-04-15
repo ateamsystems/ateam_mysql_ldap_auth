@@ -1,17 +1,28 @@
+A-Team MySQL LDAP Authenticator
+WWW: https://github.com/ateamsystems/mysql-auth_ldap
+--------------------------------------------------------------------------- -
+
+A-Team MySQL LDAP Authenticator (ateam_mysql_ldap_auth) is an authentication
+plugin for MySQL 5.1 and up, and has been extensively tested with MySQL 5.6
+under FreeBSD but should work fine under Linux as well with a few tweaks,
+patches are welcome!
+
+This module allows you to create MySQL users that are then authenticated
+against an LDAP server. This reduces administrative overhead and eliminates
+your users having to remember a seperate username and password for MySQL.
+LDAP authenticated users behave no different permission wise than 'local'
+users in terms of GRANT and DB permissions.
+
+The configuration file is flexible enough to support almost any LDAP
+directory including OpenLDAP or Active Directory.
+
+The plugin requires MySQL 5.1 and up. It is compiled as an add on module
+and does not require you to alter the MySQL source code or recompile the
+entire server. The plugin uses the OpenLDAP library to interface with a
+directory.
+
 This is a fork of the fork of original mysql-auth_ldap project:
 http://sourceforge.net/projects/mysqlauthldap/
 
 It was forked and modified by mike1703 at:
 https://github.com/mike1703/mysql-auth_ldap
-
-MySQL auth_ldap is an authentication plugin for the MySQL5 server. It
-allows you to create SQL users that are going to be authenticated using
-a LDAP server. This allows to minimize administrative duties, since your
-users will be able to reuse their existing account to access the
-database. The plugin requires MySQL 5.1 and up. It is compiled as an add
-on and does not require you to alter MySQL source code, or recompile the
-entire server. The plugin add support for LDAP using the OpenLDAP
-library.
-
-For more information about original project please visit:
-http://sourceforge.net/projects/mysqlauthldap/
