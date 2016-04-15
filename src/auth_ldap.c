@@ -748,23 +748,3 @@ mysql_declare_plugin(ldap_auth)
 	NULL,					/* Reserved */
 	0,					/* Flags ?? */
 } mysql_declare_plugin_end;
-
-static int
-ldap_auth_client(MYSQL_PLUGIN_VIO *vio, MYSQL *mysql)
-{
-	size_t passwordSize = 0;
-
-	if (mysql->passwd != NULL)
-		passwordSize = strlen(mysql->passwd);
-
-	++passwordSize;
-
-	/* Send password to server plain text */
-	int status = vio->write_packet(vio, (const unsigned char *)mysql->passwd,
-	    passwordSize);
-
-	if (status)
-		return CR_ERROR;
-
-	return (CR_OK);
-}
