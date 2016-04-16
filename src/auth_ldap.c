@@ -142,22 +142,22 @@ log_message(int message_type, const char* message, ...)
 
    /* Pick the prefix */
    switch ( message_type ) {
-      case LOG_DEBUG:
-         message_prefix = strdup("debug: ");
-         break;
-      case LOG_INFO:
-         message_prefix = strdup("info: ");
-         break;
-      case LOG_WARNING:
-         message_prefix = strdup("warning: ");
-         break;
-      case LOG_ERR:
-         message_prefix = strdup("error: ");
-         break;
-      default:
-         message_prefix = strdup("unknown: ");
-         break;
-      }
+   case LOG_DEBUG:
+      message_prefix = strdup("debug: ");
+      break;
+   case LOG_INFO:
+      message_prefix = strdup("info: ");
+      break;
+   case LOG_WARNING:
+      message_prefix = strdup("warning: ");
+      break;
+   case LOG_ERR:
+      message_prefix = strdup("error: ");
+      break;
+   default:
+      message_prefix = strdup("unknown: ");
+      break;
+   }
    
 	/* Validate printf style error format */
 	if (message == NULL) {
