@@ -128,7 +128,7 @@ log_message(int message_type, const char* message, ...)
 {
 	/* va_list struct to load the variable argument list */
 	va_list ap;
-   char message_prefix[32];
+   char *message_prefix;
 
 	/* Check if the syslog is open */
 	if (!syslog_open)
@@ -143,26 +143,27 @@ log_message(int message_type, const char* message, ...)
    /* Pick the prefix */
    switch ( message_type ) {
       case LOG_DEBUG:
-         strcpy(message_prefix,"debug: ");
+         message_prefix = strdup("debug: ");
          break;
       case LOG_INFO:
-         strcpy(message_prefix,"info: ");
+         message_prefix = strdup("info: ");
          break;
       case LOG_WARNING:
-         strcpy(message_prefix,"warning: ");
+         message_prefix = strdup("warning: ");
          break;
       case LOG_ERR:
-         strcpy(message_prefix,"error: ");
+         message_prefix = strdup("error: ");
          break;
       default:
-         strcpy(message_prefix,"unknown: ");
+         message_prefix = strdup("unknown: ");
          break;
       }
    
 	/* Validate printf style error format */
 	if (message == NULL) {
 		/* NULL was supplied. Simply log there was an info! */
-		syslog(message_type, "unknown message logged\n");
+		syslog(message_type, "%sunknown message logged\n", message_prefix);
+      free(message_prefix);
 	} else {
 		/*
 		 * Generate the C string based on the error format and
@@ -185,6 +186,7 @@ log_message(int message_type, const char* message, ...)
 			syslog(LOG_INFO,"%s%s\n", message_prefix, msg);
 			/* Free the allocated space */
 			free(msg);
+         free(message_prefix);
 		}
 	}
 }
