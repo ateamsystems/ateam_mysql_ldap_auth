@@ -139,7 +139,7 @@ log_message(int message_type, const char* message, ...)
       /* Below our level, don't do anything */
       return;
       }
-   
+
    /* Pick the prefix */
    switch ( message_type ) {
       case LOG_DEBUG:
@@ -180,7 +180,8 @@ log_message(int message_type, const char* message, ...)
 		if (msg == NULL) {
 			/* There was an error generating the info message. */
 			/* Simply log the info format. */
-			syslog(LOG_INFO,"%s%s\n", message_prefix, msg);
+			syslog(LOG_INFO,"%sunknown message\n", message_prefix);
+         free(message_prefix);
 		}else{
 			/* Log the error message */
 			syslog(LOG_INFO,"%s%s\n", message_prefix, msg);
