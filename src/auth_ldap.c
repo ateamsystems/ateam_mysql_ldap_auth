@@ -52,9 +52,9 @@ const char *CONFIG_LIBLDAP = NULL;
 
 /* This should be moved to the config file */
 #ifdef DEBUG
-   int log_level = LOG_DEBUG;
+int log_level = LOG_DEBUG;
 #else
-   int log_level = LOG_INFO;
+int log_level = LOG_INFO;
 #endif
 
 /* Logging functions */
@@ -184,16 +184,17 @@ log_message(int message_type, const char* message, ...)
 			/* There was an error generating the info message. */
 			/* Simply log the info format. */
 			if (message_prefix == NULL)
-				syslog(LOG_INFO,"unknown message\n");
+				syslog(message_type, "unknown message\n");
 			else
-				syslog(LOG_INFO,"%sunknown message\n",
+				syslog(message_type, "%sunknown message\n",
 				    message_prefix);
 		}else{
 			/* Log the error message */
 			if (message_prefix == NULL)
-				syslog(LOG_INFO,"%s\n", msg);
+				syslog(message_type, "%s\n", msg);
 			else
-				syslog(LOG_INFO,"%s%s\n", message_prefix, msg);
+				syslog(message_type, "%s%s\n", message_prefix,
+				    msg);
 			/* Free the allocated space */
 			free(msg);
 		}
