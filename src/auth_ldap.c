@@ -60,16 +60,16 @@ const char *CONFIG_LIBLDAP = NULL;
 /* Logging functions */
 static void openSysLog(void);
 static char* vmkString(const char* format,int *size, va_list ap);
-static void log_message(int message_type, const char* message, ... );
+static void log_message(int message_type, const char* message, ...);
 
 /* openLDAP wrapper functions */
-static int ldap_initialize_wrapper(LDAP**, char* );
-static int ldap_set_option_wrapper(LDAP*,int, const void* );
-static int ldap_unbind_ext_wrapper(LDAP*, LDAPControl*[], LDAPControl*[] );
+static int ldap_initialize_wrapper(LDAP**, char*);
+static int ldap_set_option_wrapper(LDAP*,int, const void*);
+static int ldap_unbind_ext_wrapper(LDAP*, LDAPControl*[], LDAPControl*[]);
 static int ldap_sasl_bind_s_wrapper(LDAP*, const char*, const char*,
-    struct berval*, LDAPControl*[], LDAPControl*[], struct berval** );
+    struct berval*, LDAPControl*[], LDAPControl*[], struct berval**);
 static struct berval* ber_str2bv_wrapper(const char*, ber_len_t, int,
-    struct berval*); 
+    struct berval*);
 static int ldap_search_s_wrapper(LDAP *, char *, int, char *, char *[], int,
     LDAPMessage **);
 static int ldap_msgfree_wrapper(LDAPMessage *);
@@ -116,7 +116,7 @@ openSysLog(void)
 {
 
 	if (syslog_open)
-	    return;
+		return;
 
 	openlog("ateam_mysql_ldap_auth", LOG_PID, LOG_DAEMON);
 	syslog_open = 1;
@@ -128,42 +128,41 @@ log_message(int message_type, const char* message, ...)
 {
 	/* va_list struct to load the variable argument list */
 	va_list ap;
-   char *message_prefix;
+	char *message_prefix;
 
 	/* Check if the syslog is open */
 	if (!syslog_open)
 		openSysLog();
 
-   /* See if the message is going to get logged with our setting */
-   if ( message_type > log_level ) {
-      /* Below our level, don't do anything */
-      return;
-      }
+	/* See if the message is going to get logged with our setting */
+	if (message_type > log_level) {
+		/* Below our level, don't do anything */
+		return;
+	}
 
-   /* Pick the prefix */
-   switch ( message_type ) {
-   case LOG_DEBUG:
-      message_prefix = strdup("debug: ");
-      break;
-   case LOG_INFO:
-      message_prefix = strdup("info: ");
-      break;
-   case LOG_WARNING:
-      message_prefix = strdup("warning: ");
-      break;
-   case LOG_ERR:
-      message_prefix = strdup("error: ");
-      break;
-   default:
-      message_prefix = strdup("unknown: ");
-      break;
-   }
-   
+	/* Pick the prefix */
+	switch ( message_type ) {
+	case LOG_DEBUG:
+		message_prefix = strdup("debug: ");
+		break;
+	case LOG_INFO:
+		message_prefix = strdup("info: ");
+		break;
+	case LOG_WARNING:
+		message_prefix = strdup("warning: ");
+		break;
+	case LOG_ERR:
+		message_prefix = strdup("error: ");
+		break;
+	default:
+		message_prefix = strdup("unknown: ");
+		break;
+	}
+
 	/* Validate printf style error format */
 	if (message == NULL) {
 		/* NULL was supplied. Simply log there was an info! */
 		syslog(message_type, "%sunknown message logged\n", message_prefix);
-      free(message_prefix);
 	} else {
 		/*
 		 * Generate the C string based on the error format and
@@ -181,14 +180,13 @@ log_message(int message_type, const char* message, ...)
 			/* There was an error generating the info message. */
 			/* Simply log the info format. */
 			syslog(LOG_INFO,"%sunknown message\n", message_prefix);
-         free(message_prefix);
 		}else{
 			/* Log the error message */
 			syslog(LOG_INFO,"%s%s\n", message_prefix, msg);
 			/* Free the allocated space */
 			free(msg);
-         free(message_prefix);
 		}
+		free(message_prefix);
 	}
 }
 
@@ -256,10 +254,11 @@ ldap_search_s_wrapper(LDAP *ld, char *base, int scope, char *filter,
 {
 
 #ifdef AUTH_LDAP_TEST_API
-	return (ldap_search_s(ld, base, scope, filter, attrs, attrsonly, res));
+	return (ldap_search_s(ld, base, scope, filter, attrs,
+	    attrsonly, res));
 #else
-	return ((*ldap_search_s_p)(ld, base, scope, filter, attrs, attrsonly,
-	    res));
+	return ((*ldap_search_s_p)(ld, base, scope, filter, attrs,
+	    attrsonly, res));
 #endif
 }
 
@@ -504,8 +503,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 
 				if (status != LDAP_SUCCESS) {
 					log_message(LOG_ERR, "authentication failed for user %s (%s): %s",
-                   myInfo->user_name,
-                   dn,
+					    myInfo->user_name, dn,
 					    (*ldap_err2string_p)(status) );
 					return (CR_ERROR);
 				} else {
@@ -519,8 +517,8 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 		free(uid_str);
 		(*ldap_msgfree_wrapper)(answer);
 	}
-   log_message(LOG_ERR, "authentication failed for user %s: user not found in directory",
-       myInfo->user_name);
+	log_message(LOG_ERR, "authentication failed for user %s: user not found in directory",
+	    myInfo->user_name);
 	return (CR_ERROR);
 }
 
@@ -694,7 +692,7 @@ init(void* omited)
 	ber_str2bv_p = (ber_str2bv_t)ber;
 	ldap_search_s_p = (ldap_search_s_t)search;
 	ldap_msgfree_p = (ldap_msgfree_t)msgfree;
-	
+
 	ldap_first_entry_p =
 	    (LDAPMessage* (*)(LDAP *, LDAPMessage *))first_entry;
 	ldap_next_entry_p =
@@ -738,14 +736,14 @@ deinit(void* omited)
 mysql_declare_plugin(ldap_auth)
 {
 	MYSQL_AUTHENTICATION_PLUGIN,		/* Plugin type */
-	&ldap_auth_handler,			      /* Ptr to plugin descriptor */
-	"auth_ldap",		               /* Plugin name */
-	"A-Team Systems",			         /* Author */
+	&ldap_auth_handler,			/* Ptr to plugin descriptor */
+	"auth_ldap",				/* Plugin name */
+	"A-Team Systems",			/* Author */
 	"LDAP authentication server plugin",	/* Description */
-	PLUGIN_LICENSE_GPL,			      /* License */
+	PLUGIN_LICENSE_GPL,			/* License */
 	init,					/* On load function */
-	deinit,				/* On unload function */
-	0x0100,				/* Version */
+	deinit,					/* On unload function */
+	0x0100,					/* Version */
 	NULL,					/* Status vars ?? */
 	NULL,					/* System vars ?? */
 	NULL,					/* Reserved */
