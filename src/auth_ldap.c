@@ -162,7 +162,8 @@ log_message(int message_type, const char* message, ...)
 	/* Validate printf style error format */
 	if (message == NULL) {
 		/* NULL was supplied. Simply log there was an info! */
-		syslog(message_type, "%sunknown message logged\n", message_prefix);
+		syslog(message_type, "%sunknown message logged\n",
+		    message_prefix);
 	} else {
 		/*
 		 * Generate the C string based on the error format and
@@ -392,7 +393,7 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 	LDAP *ld;
 	LDAPMessage *answer, *entry;
 
-	log_message(LOG_DEBUG, "connecting to LDAP server %s", CONFIG_LDAP_URI );
+	log_message(LOG_DEBUG, "connecting to LDAP server %s", CONFIG_LDAP_URI);
 	int status = (*ldap_initialize_wrapper)(&ld, CONFIG_LDAP_URI);
 	if (status != LDAP_SUCCESS) {
 		log_message(LOG_ERR, "connection to server %s failed",
@@ -412,12 +413,13 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 		return (CR_ERROR);
 	}
 
-	log_message(LOG_DEBUG, "setting LDAP_OPT_X_TLS_CACERTFILE to '%s'", CONFIG_CACERT_FILE);
+	log_message(LOG_DEBUG, "setting LDAP_OPT_X_TLS_CACERTFILE to '%s'",
+	    CONFIG_CACERT_FILE);
 	status = (*ldap_set_option_wrapper)(ld, LDAP_OPT_X_TLS_CACERTFILE,
 	    (void *)CONFIG_CACERT_FILE);
 	if (status != LDAP_OPT_SUCCESS) {
-		log_message(LOG_ERR, "cannot set LDAP_OPT_X_TLS_CACERTFILE '%s'",
-         CONFIG_CACERT_FILE);
+		log_message(LOG_ERR, "cannot set "
+		    "LDAP_OPT_X_TLS_CACERTFILE '%s'", CONFIG_CACERT_FILE);
 		(*ldap_unbind_ext_wrapper)(ld, NULL, NULL);
 		return (CR_ERROR);
 	}
@@ -441,7 +443,8 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 	    LDAP_SASL_SIMPLE, credentials, NULL, NULL, NULL);
 	if (status != LDAP_SUCCESS) {
 		(*ldap_unbind_ext_wrapper)(ld, NULL, NULL);
-		log_message(LOG_ERR, "initial bind failed for binddn '%s'", CONFIG_BIND_DN);
+		log_message(LOG_ERR, "initial bind failed for binddn '%s'",
+		    CONFIG_BIND_DN);
 		log_message(LOG_DEBUG, "ldap_sasl_bind_s() "
 		    "returned: %s", (*ldap_err2string_p)(status));
 		return (CR_ERROR);
@@ -471,7 +474,8 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 			return (CR_ERROR);
 		}
 		snprintf(uid_str, len, "uid=%s,", myInfo->user_name);
-		log_message(LOG_DEBUG, "searching for uid string: %s\n", uid_str);
+		log_message(LOG_DEBUG, "searching for uid string: %s\n",
+		    uid_str);
 		/* Cycle through all objects returned with our search */
 		for (entry = (*ldap_first_entry_p)(ld, answer);
 		    entry != NULL;
@@ -479,14 +483,17 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 
 			/* Get DN string of the object */
 			dn = (*ldap_get_dn_p)(ld, entry);
-			log_message(LOG_DEBUG, "found candidate object: %s", dn);
+			log_message(LOG_DEBUG, "found candidate object: %s",
+			    dn);
 			/* Search uid from DN */
 			if (strstr(dn, uid_str) != NULL) {
 
 				credentials = (*ber_str2bv_wrapper)(
 				    (char*)password, 0, 0, NULL);
 				if (credentials == NULL) {
-					log_message(LOG_ERR, "ber_str2bv_wrapper failed on credentials");
+					log_message(LOG_ERR,
+					    "ber_str2bv_wrapper failed "
+					    "on credentials");
 					(*ldap_memfree_p)(dn);
 					(*ldap_msgfree_wrapper)(answer);
 					(*ldap_unbind_ext_wrapper)(ld, NULL, NULL);
@@ -502,12 +509,16 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 				(*ldap_unbind_ext_wrapper)(ld, NULL, NULL);
 
 				if (status != LDAP_SUCCESS) {
-					log_message(LOG_ERR, "authentication failed for user %s (%s): %s",
+					log_message(LOG_ERR,
+					    "authentication failed "
+					    "for user %s (%s): %s",
 					    myInfo->user_name, dn,
-					    (*ldap_err2string_p)(status) );
+					    (*ldap_err2string_p)(status));
 					return (CR_ERROR);
 				} else {
-					log_message(LOG_INFO, "authentication succeeded for user %s",
+					log_message(LOG_INFO,
+					    "authentication succeeded "
+					    "for user %s",
 					    myInfo->user_name);
 					return (CR_OK);
 				}
@@ -517,8 +528,8 @@ ldap_auth_server(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *myInfo)
 		free(uid_str);
 		(*ldap_msgfree_wrapper)(answer);
 	}
-	log_message(LOG_ERR, "authentication failed for user %s: user not found in directory",
-	    myInfo->user_name);
+	log_message(LOG_ERR, "authentication failed for user %s: "
+	    "user not found in directory", myInfo->user_name);
 	return (CR_ERROR);
 }
 
@@ -531,8 +542,6 @@ static struct st_mysql_auth ldap_auth_handler = {
 static int
 init(void* omited)
 {
-
-	log_message(LOG_INFO, "loading module ateam_mysql_ldap_auth (log level %i)", log_level);
 	/* config variables */
 	const char *_CONFIG_LDAP_URI = NULL;
 	const char *_CONFIG_DN = NULL;
@@ -540,6 +549,9 @@ init(void* omited)
 	const char *_CONFIG_BIND_DN = NULL;
 	const char *_CONFIG_BIND_PW = NULL;
 	const char *_CONFIG_SEARCH_FILTER = NULL;
+
+	log_message(LOG_INFO, "loading module ateam_mysql_ldap_auth "
+	    "(log level %i)", log_level);
 
 	cf = &cfg;
 	config_init(cf);
@@ -563,7 +575,8 @@ init(void* omited)
 	}
 	if (config_lookup_string(cf, "ldap.cacert_file", &_CONFIG_CACERT_FILE)) {
 		CONFIG_CACERT_FILE = strdup(_CONFIG_CACERT_FILE);
-		log_message(LOG_DEBUG, "ldap.cacert_file = %s", CONFIG_CACERT_FILE);
+		log_message(LOG_DEBUG, "ldap.cacert_file = %s",
+		    CONFIG_CACERT_FILE);
 	} else {
 		log_message(LOG_ERR, "ldap.cacert_file is not defined "
 		    "(e.g. /etc/ssl/ldap/ca.crt)");
