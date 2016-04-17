@@ -141,7 +141,7 @@ log_message(int message_type, const char* message, ...)
 	}
 
 	/* Pick the prefix */
-	switch ( message_type ) {
+	switch (message_type) {
 	case LOG_DEBUG:
 		message_prefix = strdup("debug: ");
 		break;
@@ -162,8 +162,11 @@ log_message(int message_type, const char* message, ...)
 	/* Validate printf style error format */
 	if (message == NULL) {
 		/* NULL was supplied. Simply log there was an info! */
-		syslog(message_type, "%sunknown message logged\n",
-		    message_prefix);
+		if (message_prefix == NULL)
+			syslog(message_type, "unknown message logged\n");
+		else
+			syslog(message_type, "%sunknown message logged\n",
+			    message_prefix);
 	} else {
 		/*
 		 * Generate the C string based on the error format and
@@ -180,15 +183,23 @@ log_message(int message_type, const char* message, ...)
 		if (msg == NULL) {
 			/* There was an error generating the info message. */
 			/* Simply log the info format. */
-			syslog(LOG_INFO,"%sunknown message\n", message_prefix);
+			if (message_prefix == NULL)
+				syslog(LOG_INFO,"unknown message\n");
+			else
+				syslog(LOG_INFO,"%sunknown message\n",
+				    message_prefix);
 		}else{
 			/* Log the error message */
-			syslog(LOG_INFO,"%s%s\n", message_prefix, msg);
+			if (message_prefix == NULL)
+				syslog(LOG_INFO,"%s\n", msg);
+			else
+				syslog(LOG_INFO,"%s%s\n", message_prefix, msg);
 			/* Free the allocated space */
 			free(msg);
 		}
-		free(message_prefix);
 	}
+	if (message_prefix != NULL)
+		free(message_prefix);
 }
 
 /* Create a C string using a printf format string and a va_list */
